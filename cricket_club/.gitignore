@@ -6,6 +6,7 @@ __pycache__/
 db.sqlite3
 .env
 *.log
+/media/
 
 # IDEs and editors
 .idea/
