@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ match }}</title>
+</head>
+<body>
+    <h1>{{ match }}</h1>
+    <p>Venue: {{ match.venue }}</p>
+    <p>Date: {{ match.date }}</p>
+    <p>Result: {{ match.get_result_display }}</p>
+    {% if match.winner %}
+        <p>Winner: {{ match.winner }}</p>
+    {% endif %}
+</body>
+</html>

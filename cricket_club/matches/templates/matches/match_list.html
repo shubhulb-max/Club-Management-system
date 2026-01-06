@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Match List</title>
+</head>
+<body>
+    <h1>Matches</h1>
+    <ul>
+        {% for match in matches %}
+            <li><a href="{% url 'match_detail' match.pk %}">{{ match }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

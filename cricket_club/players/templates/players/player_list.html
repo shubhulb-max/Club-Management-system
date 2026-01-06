@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Player List</title>
+</head>
+<body>
+    <h1>Players</h1>
+    <ul>
+        {% for player in players %}
+            <li><a href="{% url 'player_detail' player.pk %}">{{ player }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

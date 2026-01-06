@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ transaction }}</title>
+</head>
+<body>
+    <h1>{{ transaction }}</h1>
+    <p>Date: {{ transaction.date }}</p>
+    <p>Amount: {{ transaction.amount }}</p>
+    <p>Type: {{ transaction.get_type_display }}</p>
+    <p>Description: {{ transaction.description }}</p>
+</body>
+</html>
