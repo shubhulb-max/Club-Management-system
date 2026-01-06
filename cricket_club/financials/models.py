@@ -1,6 +1,8 @@
 from django.db import models
+from players.models import Player
 
 class Transaction(models.Model):
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     TYPE_CHOICES = [
