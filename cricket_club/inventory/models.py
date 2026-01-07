@@ -46,8 +46,9 @@ def create_sale_transaction(sender, instance, created, **kwargs):
     if created:
         Transaction.objects.create(
             player=instance.player,
-            date=instance.sale_date,
+            category='merchandise',
             amount=instance.item.price * instance.quantity_sold,
-            type='income',
-            description=f"Merchandise purchase: {instance.quantity_sold} x {instance.item.name}"
+            due_date=instance.sale_date,
+            paid=True,
+            payment_date=instance.sale_date
         )

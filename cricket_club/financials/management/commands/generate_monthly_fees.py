@@ -1,49 +1,47 @@
 from django.core.management.base import BaseCommand
-from django.conf import settings
-from players.models import Membership
+from players.models import Player
 from financials.models import Transaction
 from datetime import date
-from dateutil.relativedelta import relativedelta
-from django.db import models
 
 class Command(BaseCommand):
-    help = 'Generates monthly fee transactions for active members who are due for payment.'
+    help = 'Generates monthly fee transactions for all active members.'
 
     def handle(self, *args, **options):
         today = date.today()
-        one_month_ago = today - relativedelta(months=1)
 
-        # Find all active members whose last payment was over a month ago,
-        # or who have never made a payment and joined over a month ago.
-        due_memberships = Membership.objects.filter(
-            status='active'
-        ).filter(
-            models.Q(last_payment_date__lte=one_month_ago) |
-            models.Q(last_payment_date__isnull=True, join_date__lte=one_month_ago)
-        )
+        # Get all players
+        players = Player.objects.all()
 
-        if not due_memberships.exists():
-            self.stdout.write(self.style.SUCCESS('No members are due for payment.'))
+        billable_players = [p for p in players if p.membership_active]
+
+        if not billable_players:
+            self.stdout.write(self.style.SUCCESS('No billable players found.'))
             return
 
-        self.stdout.write(f'Found {due_memberships.count()} members due for payment. Generating fees...')
+        self.stdout.write(f'Found {len(billable_players)} billable players. Generating invoices...')
 
-        for membership in due_memberships:
-            # Create a new transaction for the monthly fee
-            Transaction.objects.create(
-                player=membership.player,
-                date=today,
-                amount=settings.MONTHLY_FEE,
-                type='income',
-                description=f'Monthly membership fee for {today.strftime("%B %Y")}'
-            )
+        for player in billable_players:
+            # Check if a monthly fee has already been created for the current month
+            if not Transaction.objects.filter(
+                player=player,
+                category='monthly',
+                due_date__month=today.month,
+                due_date__year=today.year
+            ).exists():
+                Transaction.objects.create(
+                    player=player,
+                    category='monthly',
+                    amount=player.subscription.monthly_rate,
+                    due_date=today,
+                    paid=False
+                )
 
-            # Update the last payment date on the membership
-            membership.last_payment_date = today
-            membership.save()
+                self.stdout.write(self.style.SUCCESS(
+                    f'Successfully generated invoice for {player}.'
+                ))
+            else:
+                self.stdout.write(self.style.WARNING(
+                    f'Invoice already exists for {player} for this month.'
+                ))
 
-            self.stdout.write(self.style.SUCCESS(
-                f'Successfully generated fee for {membership.player}.'
-            ))
-
-        self.stdout.write(self.style.SUCCESS('Finished generating monthly fees.'))
+        self.stdout.write(self.style.SUCCESS('Finished generating monthly invoices.'))

@@ -5,9 +5,11 @@
 </head>
 <body>
     <h1>{{ transaction }}</h1>
-    <p>Date: {{ transaction.date }}</p>
+    <p>Player: {{ transaction.player }}</p>
+    <p>Category: {{ transaction.get_category_display }}</p>
     <p>Amount: {{ transaction.amount }}</p>
-    <p>Type: {{ transaction.get_type_display }}</p>
-    <p>Description: {{ transaction.description }}</p>
+    <p>Due Date: {{ transaction.due_date }}</p>
+    <p>Status: {% if transaction.paid %}Paid{% else %}Unpaid{% endif %}</p>
+    <p>Payment Date: {{ transaction.payment_date|default:"N/A" }}</p>
 </body>
 </html>

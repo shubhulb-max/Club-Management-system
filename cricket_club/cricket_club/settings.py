@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "teams",
     "matches",
     "inventory",
+    "tournaments",
 ]
 
 MIDDLEWARE = [

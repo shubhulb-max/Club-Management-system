@@ -36,9 +36,13 @@ class SaleModelTest(TestCase):
         )
 
         # Check if a transaction was created
-        self.assertTrue(Transaction.objects.filter(player=self.player, amount=150.00).exists())
-        transaction = Transaction.objects.get(player=self.player, amount=150.00)
-        self.assertEqual(transaction.description, 'Merchandise purchase: 1 x Cricket Bat')
+        self.assertTrue(
+            Transaction.objects.filter(
+                player=self.player,
+                amount=150.00,
+                category='merchandise'
+            ).exists()
+        )
 
 class ItemAssignmentModelTest(TestCase):
     def setUp(self):
