@@ -16,29 +16,32 @@
 
     <h2>Membership Details</h2>
     {% if player.membership %}
-        <p>Status: {{ player.membership.get_status_display }}</p>
+        <p>Status: {% if player.membership_active %}Active{% else %}Inactive{% endif %}</p>
         <p>Join Date: {{ player.membership.join_date }}</p>
-        <p>Last Payment Date: {{ player.membership.last_payment_date|default:"N/A" }}</p>
     {% else %}
         <p>No membership information available.</p>
     {% endif %}
 
     <h2>Payment History</h2>
-    {% if transactions %}
+    {% if player.transactions.all %}
         <table border="1">
             <thead>
                 <tr>
-                    <th>Date</th>
+                    <th>Category</th>
                     <th>Amount</th>
-                    <th>Description</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Payment Date</th>
                 </tr>
             </thead>
             <tbody>
-                {% for transaction in transactions %}
+                {% for transaction in player.transactions.all %}
                     <tr>
-                        <td>{{ transaction.date }}</td>
+                        <td>{{ transaction.get_category_display }}</td>
                         <td>{{ transaction.amount }}</td>
-                        <td>{{ transaction.description }}</td>
+                        <td>{{ transaction.due_date }}</td>
+                        <td>{% if transaction.paid %}Paid{% else %}Unpaid{% endif %}</td>
+                        <td>{{ transaction.payment_date|default:"N/A" }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
