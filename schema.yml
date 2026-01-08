@@ -1,0 +1,2209 @@
+openapi: 3.0.3
+info:
+  title: Cricket Club API
+  version: 1.0.0
+  description: API for managing players, teams, matches, and more.
+paths:
+  /api-token-auth/:
+    post:
+      operationId: api_token_auth_create
+      tags:
+      - api-token-auth
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+          description: ''
+  /api/grounds/:
+    get:
+      operationId: api_grounds_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ground'
+          description: ''
+    post:
+      operationId: api_grounds_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ground'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ground'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Ground'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ground'
+          description: ''
+  /api/grounds/{id}/:
+    get:
+      operationId: api_grounds_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ground.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ground'
+          description: ''
+    put:
+      operationId: api_grounds_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ground.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ground'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ground'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Ground'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ground'
+          description: ''
+    patch:
+      operationId: api_grounds_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ground.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGround'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGround'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGround'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ground'
+          description: ''
+    delete:
+      operationId: api_grounds_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ground.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/inventory-items/:
+    get:
+      operationId: api_inventory_items_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItem'
+          description: ''
+    post:
+      operationId: api_inventory_items_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+          description: ''
+  /api/inventory-items/{id}/:
+    get:
+      operationId: api_inventory_items_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this inventory item.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+          description: ''
+    put:
+      operationId: api_inventory_items_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this inventory item.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+          description: ''
+    patch:
+      operationId: api_inventory_items_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this inventory item.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedInventoryItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedInventoryItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedInventoryItem'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+          description: ''
+    delete:
+      operationId: api_inventory_items_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this inventory item.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/item-assignments/:
+    get:
+      operationId: api_item_assignments_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemAssignment'
+          description: ''
+    post:
+      operationId: api_item_assignments_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemAssignment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ItemAssignment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ItemAssignment'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemAssignment'
+          description: ''
+  /api/item-assignments/{id}/:
+    get:
+      operationId: api_item_assignments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this item assignment.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemAssignment'
+          description: ''
+    put:
+      operationId: api_item_assignments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this item assignment.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemAssignment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ItemAssignment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ItemAssignment'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemAssignment'
+          description: ''
+    patch:
+      operationId: api_item_assignments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this item assignment.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedItemAssignment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedItemAssignment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedItemAssignment'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemAssignment'
+          description: ''
+    delete:
+      operationId: api_item_assignments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this item assignment.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/matches/:
+    get:
+      operationId: api_matches_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+          description: ''
+    post:
+      operationId: api_matches_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Match'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Match'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Match'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+          description: ''
+  /api/matches/{id}/:
+    get:
+      operationId: api_matches_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this match.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+          description: ''
+    put:
+      operationId: api_matches_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this match.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Match'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Match'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Match'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+          description: ''
+    patch:
+      operationId: api_matches_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this match.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMatch'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMatch'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMatch'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+          description: ''
+    delete:
+      operationId: api_matches_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this match.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/players/:
+    get:
+      operationId: api_players_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+          description: ''
+    post:
+      operationId: api_players_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Player'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Player'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Player'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+          description: ''
+  /api/players/{id}/:
+    get:
+      operationId: api_players_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this player.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+          description: ''
+    put:
+      operationId: api_players_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this player.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Player'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Player'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Player'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+          description: ''
+    patch:
+      operationId: api_players_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this player.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlayer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlayer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlayer'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+          description: ''
+    delete:
+      operationId: api_players_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this player.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/sales/:
+    get:
+      operationId: api_sales_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sale'
+          description: ''
+    post:
+      operationId: api_sales_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Sale'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Sale'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Sale'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+          description: ''
+  /api/sales/{id}/:
+    get:
+      operationId: api_sales_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this sale.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+          description: ''
+    put:
+      operationId: api_sales_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this sale.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Sale'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Sale'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Sale'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+          description: ''
+    patch:
+      operationId: api_sales_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this sale.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSale'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSale'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSale'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+          description: ''
+    delete:
+      operationId: api_sales_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this sale.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: api_schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/teams/:
+    get:
+      operationId: api_teams_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+          description: ''
+    post:
+      operationId: api_teams_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/teams/{id}/:
+    get:
+      operationId: api_teams_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    put:
+      operationId: api_teams_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    patch:
+      operationId: api_teams_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTeam'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTeam'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTeam'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    delete:
+      operationId: api_teams_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/tournament-participations/:
+    get:
+      operationId: api_tournament_participations_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TournamentParticipation'
+          description: ''
+    post:
+      operationId: api_tournament_participations_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TournamentParticipation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TournamentParticipation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TournamentParticipation'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentParticipation'
+          description: ''
+  /api/tournament-participations/{id}/:
+    get:
+      operationId: api_tournament_participations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament participation.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentParticipation'
+          description: ''
+    put:
+      operationId: api_tournament_participations_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament participation.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TournamentParticipation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TournamentParticipation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TournamentParticipation'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentParticipation'
+          description: ''
+    patch:
+      operationId: api_tournament_participations_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament participation.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTournamentParticipation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTournamentParticipation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTournamentParticipation'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentParticipation'
+          description: ''
+    delete:
+      operationId: api_tournament_participations_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament participation.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/tournaments/:
+    get:
+      operationId: api_tournaments_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+          description: ''
+    post:
+      operationId: api_tournaments_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tournament'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tournament'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tournament'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+          description: ''
+  /api/tournaments/{id}/:
+    get:
+      operationId: api_tournaments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+          description: ''
+    put:
+      operationId: api_tournaments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tournament'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tournament'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tournament'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+          description: ''
+    patch:
+      operationId: api_tournaments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTournament'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTournament'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTournament'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+          description: ''
+    delete:
+      operationId: api_tournaments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tournament.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/transactions/:
+    get:
+      operationId: api_transactions_list
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+          description: ''
+    post:
+      operationId: api_transactions_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+  /api/transactions/{id}/:
+    get:
+      operationId: api_transactions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this transaction.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+    put:
+      operationId: api_transactions_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this transaction.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+    patch:
+      operationId: api_transactions_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this transaction.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTransaction'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTransaction'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTransaction'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+    delete:
+      operationId: api_transactions_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this transaction.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AuthToken:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        token:
+          type: string
+          readOnly: true
+      required:
+      - password
+      - token
+      - username
+    BlankEnum:
+      enum:
+      - ''
+    CategoryEnum:
+      enum:
+      - registration
+      - monthly
+      - tournament
+      - merchandise
+      type: string
+      description: |-
+        * `registration` - Registration Fee
+        * `monthly` - Monthly Fee
+        * `tournament` - Tournament Fee
+        * `merchandise` - Merchandise
+    Ground:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        location:
+          type: string
+          maxLength: 200
+      required:
+      - id
+      - location
+      - name
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+      required:
+      - description
+      - id
+      - name
+      - type
+    ItemAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item:
+          type: integer
+        team:
+          type: integer
+        quantity_assigned:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        date_assigned:
+          type: string
+          format: date
+      required:
+      - date_assigned
+      - id
+      - item
+      - quantity_assigned
+      - team
+    Match:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        team1:
+          type: integer
+        team2:
+          type: integer
+          nullable: true
+        external_opponent:
+          type: string
+          nullable: true
+          maxLength: 100
+        ground:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date-time
+        result:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ResultEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        winner:
+          type: integer
+          nullable: true
+      required:
+      - date
+      - id
+      - team1
+    Membership:
+      type: object
+      properties:
+        join_date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+      required:
+      - join_date
+    NullEnum:
+      enum:
+      - null
+    PatchedGround:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        location:
+          type: string
+          maxLength: 200
+    PatchedInventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+    PatchedItemAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item:
+          type: integer
+        team:
+          type: integer
+        quantity_assigned:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        date_assigned:
+          type: string
+          format: date
+    PatchedMatch:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        team1:
+          type: integer
+        team2:
+          type: integer
+          nullable: true
+        external_opponent:
+          type: string
+          nullable: true
+          maxLength: 100
+        ground:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date-time
+        result:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ResultEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        winner:
+          type: integer
+          nullable: true
+    PatchedPlayer:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 50
+        last_name:
+          type: string
+          maxLength: 50
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        profile_picture:
+          type: string
+          format: uri
+          nullable: true
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        membership_active:
+          type: boolean
+          readOnly: true
+        membership:
+          allOf:
+          - $ref: '#/components/schemas/Membership'
+          readOnly: true
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerTeam'
+          readOnly: true
+        captain_of:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerTeam'
+          readOnly: true
+        tournament_participations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerTournamentParticipation'
+          readOnly: true
+    PatchedSale:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item:
+          type: integer
+        player:
+          type: integer
+        quantity_sold:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        sale_date:
+          type: string
+          format: date
+    PatchedTeam:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        captain:
+          type: integer
+          nullable: true
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+          readOnly: true
+    PatchedTournament:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        start_date:
+          type: string
+          format: date
+        entry_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+          readOnly: true
+    PatchedTournamentParticipation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        player:
+          type: integer
+        tournament:
+          type: integer
+    PatchedTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        player:
+          type: integer
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        due_date:
+          type: string
+          format: date
+        paid:
+          type: boolean
+        payment_date:
+          type: string
+          format: date
+          nullable: true
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 50
+        last_name:
+          type: string
+          maxLength: 50
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        profile_picture:
+          type: string
+          format: uri
+          nullable: true
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        membership_active:
+          type: boolean
+          readOnly: true
+        membership:
+          allOf:
+          - $ref: '#/components/schemas/Membership'
+          readOnly: true
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerTeam'
+          readOnly: true
+        captain_of:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerTeam'
+          readOnly: true
+        tournament_participations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerTournamentParticipation'
+          readOnly: true
+      required:
+      - age
+      - captain_of
+      - first_name
+      - id
+      - last_name
+      - membership
+      - membership_active
+      - role
+      - teams
+      - tournament_participations
+    PlayerTeam:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+      required:
+      - id
+      - name
+    PlayerTournamentParticipation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        tournament:
+          type: integer
+        tournament_name:
+          type: string
+          readOnly: true
+        tournament_start_date:
+          type: string
+          format: date
+          readOnly: true
+      required:
+      - id
+      - tournament
+      - tournament_name
+      - tournament_start_date
+    ResultEnum:
+      enum:
+      - win
+      - loss
+      - draw
+      - no_result
+      type: string
+      description: |-
+        * `win` - Win
+        * `loss` - Loss
+        * `draw` - Draw
+        * `no_result` - No Result
+    RoleEnum:
+      enum:
+      - batsman
+      - bowler
+      - all_rounder
+      - wicket_keeper
+      type: string
+      description: |-
+        * `batsman` - Batsman
+        * `bowler` - Bowler
+        * `all_rounder` - All-Rounder
+        * `wicket_keeper` - Wicket-Keeper
+    Sale:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item:
+          type: integer
+        player:
+          type: integer
+        quantity_sold:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        sale_date:
+          type: string
+          format: date
+      required:
+      - id
+      - item
+      - player
+      - quantity_sold
+      - sale_date
+    StatusEnum:
+      enum:
+      - active
+      - inactive
+      - pending
+      type: string
+      description: |-
+        * `active` - Active
+        * `inactive` - Inactive
+        * `pending` - Pending
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        captain:
+          type: integer
+          nullable: true
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+          readOnly: true
+      required:
+      - id
+      - name
+      - players
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        start_date:
+          type: string
+          format: date
+        entry_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+          readOnly: true
+      required:
+      - entry_fee
+      - id
+      - name
+      - participants
+      - start_date
+    TournamentParticipation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        player:
+          type: integer
+        tournament:
+          type: integer
+      required:
+      - id
+      - player
+      - tournament
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        player:
+          type: integer
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        due_date:
+          type: string
+          format: date
+        paid:
+          type: boolean
+        payment_date:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - amount
+      - id
+      - player
+    TypeEnum:
+      enum:
+      - team_kit
+      - merchandise
+      type: string
+      description: |-
+        * `team_kit` - Team Kit
+        * `merchandise` - Merchandise
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
