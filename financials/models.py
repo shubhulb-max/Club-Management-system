@@ -8,6 +8,7 @@ class Transaction(models.Model):
         ('monthly', 'Monthly Fee'),
         ('tournament', 'Tournament Fee'),
         ('merchandise', 'Merchandise'),
+        ('fine', 'Fine/Penalty'),
     ]
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='transactions')
