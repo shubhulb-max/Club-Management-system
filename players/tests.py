@@ -1,10 +1,10 @@
 from django.test import TestCase
-from .models import Player, Subscription
-from financials.models import Transaction
-from datetime import date, timedelta
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
+from .models import Player, Subscription
+from financials.models import Transaction
+from datetime import date, timedelta
 
 class PlayerModelTest(TestCase):
 
@@ -37,63 +37,78 @@ class PlayerModelTest(TestCase):
         Transaction.objects.filter(player=self.player, category='monthly').update(paid=True)
         self.assertTrue(self.player.membership_active)
 
-class ClaimProfileTests(TestCase):
+class AuthTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = '/api/players/claim-profile/'
+        self.register_url = '/api/auth/register/'
+        self.login_url = '/api/auth/login/'
 
         # Create an unclaimed player
         self.unclaimed_player = Player.objects.create(
-            first_name="Unclaimed",
+            first_name="Existing",
             last_name="Player",
-            age=20,
+            age=25,
             role="bowler",
-            phone_number="9876543210"
+            phone_number="9988776655"
         )
 
-        # Create a claimed player
-        self.claimed_user = User.objects.create_user(username="claimed_user", password="password")
-        self.claimed_player = Player.objects.create(
-            first_name="Claimed",
-            last_name="Player",
-            age=22,
-            role="batsman",
-            phone_number="1122334455",
-            user=self.claimed_user
-        )
-
-    def test_claim_profile_success(self):
+    def test_register_new_player(self):
         data = {
-            "phone_number": "9876543210",
-            "password": "newpassword123"
+            "phone_number": "1234567890",
+            "password": "password123",
+            "first_name": "New",
+            "last_name": "User"
         }
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("token", response.data)
+
+        # Verify user and player created
+        user = User.objects.get(username="1234567890")
+        player = Player.objects.get(phone_number="1234567890")
+        self.assertEqual(player.user, user)
+        self.assertEqual(player.first_name, "New")
+
+    def test_register_claim_existing_player(self):
+        data = {
+            "phone_number": "9988776655",
+            "password": "password123"
+        }
+        response = self.client.post(self.register_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Verify linkage
         self.unclaimed_player.refresh_from_db()
         self.assertIsNotNone(self.unclaimed_player.user)
-        self.assertEqual(self.unclaimed_player.user.username, "9876543210")
+        self.assertEqual(self.unclaimed_player.user.username, "9988776655")
 
-    def test_claim_profile_not_found(self):
+    def test_register_existing_user_fail(self):
+        # First register
+        User.objects.create_user(username="1234567890", password="password")
+
+        # Try registering again
         data = {
-            "phone_number": "0000000000",
-            "password": "password"
+            "phone_number": "1234567890",
+            "password": "password123"
         }
-        response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = self.client.post(self.register_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_claim_profile_already_claimed(self):
+    def test_login_success(self):
+        User.objects.create_user(username="9999999999", password="password123")
+
         data = {
-            "phone_number": "1122334455",
-            "password": "password"
+            "phone_number": "9999999999",
+            "password": "password123"
         }
-        response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("already linked", response.data["error"])
+        response = self.client.post(self.login_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("token", response.data)
 
-    def test_claim_profile_missing_data(self):
-        data = {"phone_number": "9876543210"} # Missing password
-        response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    def test_login_fail(self):
+        data = {
+            "phone_number": "9999999999",
+            "password": "wrongpassword"
+        }
+        response = self.client.post(self.login_url, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

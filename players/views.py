@@ -1,8 +1,9 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .models import Player
 from .serializers import PlayerSerializer
@@ -11,57 +12,83 @@ class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
 
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny], url_path='claim-profile')
-    def claim_profile(self, request):
-        """
-        Allows a user to claim a player profile using their phone number and set a password.
-        Payload: { "phone_number": "...", "password": "...", "username": "..." (optional, defaults to phone) }
-        """
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
         phone_number = request.data.get('phone_number')
         password = request.data.get('password')
-        username = request.data.get('username')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
 
         if not phone_number or not password:
             return Response({"error": "Phone number and password are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Find the Player
+        # Check if user already exists
+        if User.objects.filter(username=phone_number).exists():
+            return Response({"error": "Account with this phone number already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for existing player profile
         players = Player.objects.filter(phone_number=phone_number)
+        player = None
 
-        if not players.exists():
-            return Response({"error": "No player profile found with this phone number."}, status=status.HTTP_404_NOT_FOUND)
+        if players.exists():
+            # Claim existing profile
+            if players.count() > 1:
+                return Response({"error": "Multiple profiles found. Contact support."}, status=status.HTTP_409_CONFLICT)
 
-        if players.count() > 1:
-            return Response({"error": "Multiple profiles found with this number. Please contact support."}, status=status.HTTP_409_CONFLICT)
+            player = players.first()
+            if player.user:
+                 return Response({"error": "This player profile is already linked to a user."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Create new profile
+            if not first_name or not last_name:
+                return Response({"error": "First name and last name are required for new registrations."}, status=status.HTTP_400_BAD_REQUEST)
 
-        player = players.first()
-
-        # 2. Check if already claimed
-        if player.user:
-            return Response({"error": "This profile is already linked to a user account."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 3. Create User
-        if not username:
-            username = phone_number # Default username is the phone number
-
-        if User.objects.filter(username=username).exists():
-             return Response({"error": "Username already taken. Please choose another."}, status=status.HTTP_400_BAD_REQUEST)
+            player = Player.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                phone_number=phone_number,
+                age=0, # Default or require age? Let's default to 0 for now or user can update later
+                role='all_rounder' # Default role
+            )
 
         try:
-            user = User.objects.create_user(username=username, password=password)
-
-            # 4. Link User to Player
+            user = User.objects.create_user(username=phone_number, password=password)
             player.user = user
             player.save()
 
-            # 5. Generate Token for immediate login
             token, _ = Token.objects.get_or_create(user=user)
 
             return Response({
-                "message": "Profile claimed successfully.",
+                "message": "Registration successful.",
                 "token": token.key,
                 "user_id": user.id,
                 "player_id": player.id
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response({"error": f"Failed to create account: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Registration failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone_number = request.data.get('phone_number')
+        password = request.data.get('password')
+
+        if not phone_number or not password:
+            return Response({"error": "Phone number and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=phone_number, password=password)
+
+        if user:
+            token, _ = Token.objects.get_or_create(user=user)
+            player_id = user.player.id if hasattr(user, 'player') else None
+            return Response({
+                "token": token.key,
+                "user_id": user.id,
+                "player_id": player_id
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
