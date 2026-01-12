@@ -1,20 +1,11 @@
-from rest_framework import viewsets, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from django.conf import settings
+from rest_framework import viewsets
 from .models import Transaction
 from .serializers import TransactionSerializer
-from .phonepe_utils import initiate_phonepe_payment, verify_callback_checksum
-import base64
-import json
-from datetime import date
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+<<<<<<< HEAD
 
 class InitiatePaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -103,3 +94,5 @@ class PaymentCallbackView(APIView):
                 pass # Log error or ignore
 
         return Response({"status": "acknowledged"})
+=======
+>>>>>>> origin/feat-cricket-club-backend-9509745213947822927

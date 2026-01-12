@@ -3,5 +3,8 @@ Pillow==12.1.0
 python-dateutil==2.9.0.post0
 djangorestframework==3.16.1
 django-cors-headers==4.9.0
+<<<<<<< HEAD
 requests
 phonepe-pg-sdk-python
+=======
+>>>>>>> origin/feat-cricket-club-backend-9509745213947822927
