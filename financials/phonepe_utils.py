@@ -1,86 +1,58 @@
-import base64
-import json
-import hashlib
-import requests
+import uuid
 from django.conf import settings
+from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient
+from phonepe.sdk.pg.payments.v2.models.request.standard_checkout_pay_request import StandardCheckoutPayRequest
+from phonepe.sdk.pg.common.models.request.meta_info import MetaInfo
+from phonepe.sdk.pg.env import Env
 
-def generate_checksum(payload_base64, salt_key, salt_index):
+def get_phonepe_client():
+    config = settings.PHONEPE_CONFIG
+    env = Env.SANDBOX if config['ENV'] == 'SANDBOX' else Env.PRODUCTION
+
+    return StandardCheckoutClient.get_instance(
+        client_id=config['CLIENT_ID'],
+        client_secret=config['CLIENT_SECRET'],
+        client_version=config['CLIENT_VERSION'],
+        env=env
+    )
+
+def initiate_phonepe_payment(transaction_id, amount, user_id):
     """
-    Generates the X-VERIFY checksum for PhonePe API.
-    Format: SHA256(Base64(Payload) + "/pg/v1/pay" + SaltKey) + ### + SaltIndex
-    Wait, the format is actually SHA256(Base64(Payload) + Endpoint + SaltKey) + ### + SaltIndex
-    But for the 'pay' endpoint, it is typically just the payload + endpoint + salt.
-
-    Standard formula: SHA256(base64Body + apiEndpoint + salt) + ### + saltIndex
-    """
-    string_to_hash = f"{payload_base64}/pg/v1/pay{salt_key}"
-    sha256_hash = hashlib.sha256(string_to_hash.encode('utf-8')).hexdigest()
-    return f"{sha256_hash}###{salt_index}"
-
-def initiate_phonepe_payment(transaction_id, amount, user_id, mobile_number=None):
-    """
-    Initiates a payment request to PhonePe.
-
-    Args:
-        transaction_id (str): Unique transaction ID (e.g., "TXN123").
-        amount (float): Amount in INR.
-        user_id (str): Unique user ID (e.g., "USER123").
-        mobile_number (str, optional): User's mobile number.
-
-    Returns:
-        dict: The response from PhonePe containing the redirect URL or error.
+    Initiates a payment request to PhonePe using the SDK.
     """
     config = settings.PHONEPE_CONFIG
+    client = get_phonepe_client()
 
-    # Amount needs to be in paise (1 INR = 100 paise)
+    unique_order_id = str(transaction_id)
     amount_in_paise = int(float(amount) * 100)
 
-    payload = {
-        "merchantId": config['MERCHANT_ID'],
-        "merchantTransactionId": str(transaction_id),
-        "merchantUserId": str(user_id),
-        "amount": amount_in_paise,
-        "redirectUrl": config['CALLBACK_URL'],
-        "redirectMode": "POST",
-        "callbackUrl": config['CALLBACK_URL'],
-        "mobileNumber": mobile_number if mobile_number else "9999999999",
-        "paymentInstrument": {
-            "type": "PAY_PAGE"
-        }
-    }
+    request = StandardCheckoutPayRequest.build_request(
+        merchant_order_id=unique_order_id,
+        amount=amount_in_paise,
+        redirect_url=config['CALLBACK_URL'],
+        meta_info=MetaInfo()
+    )
 
-    # Base64 Encode Payload
-    payload_json = json.dumps(payload)
-    payload_base64 = base64.b64encode(payload_json.encode('utf-8')).decode('utf-8')
+    response = client.pay(request)
+    return response
 
-    # Generate Checksum
-    checksum = generate_checksum(payload_base64, config['SALT_KEY'], config['SALT_INDEX'])
-
-    headers = {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum
-    }
-
-    url = f"{config['BASE_URL']}/pg/v1/pay"
+def verify_callback_checksum(response_payload_base64, received_checksum):
+    """
+    Verifies the callback request using the SDK.
+    It uses the SDK's validate_callback method.
+    """
+    client = get_phonepe_client()
 
     try:
-        response = requests.post(url, json={'request': payload_base64}, headers=headers)
-        return response.json()
-    except requests.RequestException as e:
-        return {"success": False, "message": str(e)}
-
-def verify_callback_checksum(response_payload_base64, received_checksum, salt_key, salt_index):
-    """
-    Verifies the checksum received in the callback.
-    Format: SHA256(responseBase64 + saltKey) + ### + saltIndex
-    """
-    # Note: PhonePe documentation says for server-to-server callback:
-    # X-VERIFY = SHA256(base64_response_body + salt_key) + ### + salt_index
-    # But wait, sometimes it's different. Let's check the docs snippet if available.
-    # Standard practice: SHA256(response_body + salt_key) + ### + salt_index
-
-    string_to_hash = f"{response_payload_base64}{salt_key}"
-    calculated_hash = hashlib.sha256(string_to_hash.encode('utf-8')).hexdigest()
-    expected_checksum = f"{calculated_hash}###{salt_index}"
-
-    return received_checksum == expected_checksum
+        # Assuming we don't have Basic Auth enabled for callbacks in Sandbox, passing empty strings.
+        # This method typically validates the X-VERIFY header (received_checksum) against the payload.
+        response = client.validate_callback(
+            username="",
+            password="",
+            callback_header_data=received_checksum,
+            callback_response_data=response_payload_base64
+        )
+        return response.status
+    except Exception as e:
+        # Logging the error would be ideal here
+        return False

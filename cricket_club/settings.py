@@ -17,11 +17,10 @@ MONTHLY_FEE = 750
 
 # PhonePe Configuration (Sandbox/UAT)
 PHONEPE_CONFIG = {
-    'MERCHANT_ID': 'PGTESTPAYUAT',
-    'SALT_KEY': '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399',
-    'SALT_INDEX': 1,
-    'ENV': 'UAT',
-    'BASE_URL': 'https://api-preprod.phonepe.com/apis/pg-sandbox',
+    'CLIENT_ID': 'M23VC340MZKCY_2512111424',
+    'CLIENT_SECRET': 'NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk',
+    'CLIENT_VERSION': 1,
+    'ENV': 'SANDBOX',  # Enum: SANDBOX or PRODUCTION
     'CALLBACK_URL': 'http://localhost:8000/api/financials/payment-callback/'  # Update this in production
 }
 

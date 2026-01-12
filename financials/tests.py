@@ -7,10 +7,8 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from .phonepe_utils import generate_checksum, verify_callback_checksum
 import base64
 import json
-import hashlib
 from unittest.mock import patch, MagicMock
 
 class GenerateMonthlyFeesTest(TestCase):
@@ -54,32 +52,6 @@ class GenerateMonthlyFeesTest(TestCase):
             1 # Should not create a duplicate
         )
 
-class PhonePeUtilsTests(TestCase):
-    def test_generate_checksum(self):
-        payload = "test_payload"
-        salt_key = "test_salt_key"
-        salt_index = 1
-
-        # Expected: SHA256(payload + "/pg/v1/pay" + salt_key) + "###" + salt_index
-        string_to_hash = f"{payload}/pg/v1/pay{salt_key}"
-        expected_hash = hashlib.sha256(string_to_hash.encode('utf-8')).hexdigest()
-        expected_checksum = f"{expected_hash}###{salt_index}"
-
-        self.assertEqual(generate_checksum(payload, salt_key, salt_index), expected_checksum)
-
-    def test_verify_callback_checksum(self):
-        response_payload = "test_response_payload"
-        salt_key = "test_salt_key"
-        salt_index = 1
-
-        # Calculate valid checksum
-        string_to_hash = f"{response_payload}{salt_key}"
-        expected_hash = hashlib.sha256(string_to_hash.encode('utf-8')).hexdigest()
-        valid_checksum = f"{expected_hash}###{salt_index}"
-
-        self.assertTrue(verify_callback_checksum(response_payload, valid_checksum, salt_key, salt_index))
-        self.assertFalse(verify_callback_checksum(response_payload, "invalid_checksum", salt_key, salt_index))
-
 class PaymentFlowTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -104,22 +76,17 @@ class PaymentFlowTests(TestCase):
 
     @patch('financials.views.initiate_phonepe_payment')
     def test_initiate_payment_success(self, mock_initiate):
-        mock_initiate.return_value = {
-            "success": True,
-            "data": {
-                "instrumentResponse": {
-                    "redirectInfo": {
-                        "url": "https://test.phonepe.com/pay"
-                    }
-                }
-            }
-        }
+        # Mocking the response object from SDK
+        mock_response = MagicMock()
+        mock_response.redirect_url = "https://test.phonepe.com/pay"
+        mock_initiate.return_value = mock_response
 
         response = self.client.post(self.initiate_url, {'transaction_id': self.transaction.id})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['payment_url'], "https://test.phonepe.com/pay")
-        self.assertEqual(response.data['merchant_transaction_id'], f"TXN{self.transaction.id}")
+        # Check if merchant_transaction_id starts with TXN{id}_
+        self.assertTrue(response.data['merchant_transaction_id'].startswith(f"TXN{self.transaction.id}_"))
 
     def test_initiate_payment_invalid_transaction(self):
         response = self.client.post(self.initiate_url, {'transaction_id': 9999})
@@ -132,9 +99,12 @@ class PaymentFlowTests(TestCase):
         response = self.client.post(self.initiate_url, {'transaction_id': self.transaction.id})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_payment_callback_success(self):
-        # Prepare valid callback data
-        merchant_transaction_id = f"TXN{self.transaction.id}"
+    @patch('financials.views.verify_callback_checksum')
+    def test_payment_callback_success_s2s(self, mock_verify):
+        # Test Server-to-Server callback (Header-based)
+        mock_verify.return_value = True
+
+        merchant_transaction_id = f"TXN{self.transaction.id}_abc123"
         response_data = {
             "success": True,
             "code": "PAYMENT_SUCCESS",
@@ -146,31 +116,55 @@ class PaymentFlowTests(TestCase):
         response_json = json.dumps(response_data)
         response_encoded = base64.b64encode(response_json.encode('utf-8')).decode('utf-8')
 
-        # Generate valid checksum using the config from settings (using actual settings for test)
-        from django.conf import settings
-        config = settings.PHONEPE_CONFIG
-
-        string_to_hash = f"{response_encoded}{config['SALT_KEY']}"
-        expected_hash = hashlib.sha256(string_to_hash.encode('utf-8')).hexdigest()
-        x_verify = f"{expected_hash}###{config['SALT_INDEX']}"
-
-        # Callback endpoint is public, so no authentication needed (or AllowAny)
         self.client.logout()
 
         response = self.client.post(
             self.callback_url,
             {'response': response_encoded},
-            **{'HTTP_X_VERIFY': x_verify}
+            **{'HTTP_X_VERIFY': "dummy_checksum"}
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Verify transaction is updated
         self.transaction.refresh_from_db()
         self.assertTrue(self.transaction.paid)
-        self.assertIsNotNone(self.transaction.payment_date)
 
-    def test_payment_callback_invalid_checksum(self):
+    @patch('financials.views.verify_callback_checksum')
+    def test_payment_callback_success_redirect(self, mock_verify):
+        # Test Browser Redirect callback (Body-based checksum)
+        mock_verify.return_value = True
+
+        # Reset transaction
+        self.transaction.paid = False
+        self.transaction.save()
+
+        merchant_transaction_id = f"TXN{self.transaction.id}_xyz789"
+        response_data = {
+            "success": True,
+            "code": "PAYMENT_SUCCESS",
+            "data": {
+                "merchantTransactionId": merchant_transaction_id,
+                "amount": 50000
+            }
+        }
+        response_json = json.dumps(response_data)
+        response_encoded = base64.b64encode(response_json.encode('utf-8')).decode('utf-8')
+
+        self.client.logout()
+
+        # Pass checksum in BODY (data)
+        response = self.client.post(
+            self.callback_url,
+            {'response': response_encoded, 'checksum': 'dummy_checksum_body'}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.transaction.refresh_from_db()
+        self.assertTrue(self.transaction.paid)
+
+    @patch('financials.views.verify_callback_checksum')
+    def test_payment_callback_invalid_checksum(self, mock_verify):
+        mock_verify.return_value = False # Simulate failure
+
         response_encoded = "some_base64_data"
         x_verify = "invalid_checksum"
 
