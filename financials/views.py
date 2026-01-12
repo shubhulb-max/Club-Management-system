@@ -5,8 +5,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from .models import Transaction
-from .serializers import TransactionSerializer
+from .serializers import TransactionSerializer, InitiatePaymentSerializer, PaymentCallbackSerializer
 from .phonepe_utils import initiate_phonepe_payment, verify_callback_checksum
 import base64
 import json
@@ -19,11 +20,13 @@ class TransactionViewSet(viewsets.ModelViewSet):
 class InitiatePaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=InitiatePaymentSerializer, responses={200: None})
     def post(self, request):
-        transaction_id = request.data.get('transaction_id')
-        if not transaction_id:
-            return Response({"error": "transaction_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = InitiatePaymentSerializer(data=request.data)
+        if not serializer.is_valid():
+             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        transaction_id = serializer.validated_data['transaction_id']
         transaction = get_object_or_404(Transaction, id=transaction_id)
 
         # Ensure the user owns this transaction (via Player)
@@ -60,6 +63,7 @@ class InitiatePaymentView(APIView):
 class PaymentCallbackView(APIView):
     permission_classes = [AllowAny] # Callbacks come from PhonePe server
 
+    @extend_schema(request=PaymentCallbackSerializer, responses={200: None})
     def post(self, request):
         # PhonePe sends the response in a base64 encoded 'response' field
         response_encoded = request.data.get('response')
