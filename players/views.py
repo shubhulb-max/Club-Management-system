@@ -5,8 +5,10 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from drf_spectacular.utils import extend_schema
 from .models import Player
 from .serializers import PlayerSerializer
+from .auth_serializers import RegisterSerializer, LoginSerializer
 
 class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
@@ -15,14 +17,16 @@ class PlayerViewSet(viewsets.ModelViewSet):
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(request=RegisterSerializer, responses={201: None})
     def post(self, request):
-        phone_number = request.data.get('phone_number')
-        password = request.data.get('password')
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
+        serializer = RegisterSerializer(data=request.data)
+        if not serializer.is_valid():
+             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if not phone_number or not password:
-            return Response({"error": "Phone number and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        phone_number = serializer.validated_data['phone_number']
+        password = serializer.validated_data['password']
+        first_name = serializer.validated_data.get('first_name')
+        last_name = serializer.validated_data.get('last_name')
 
         # Check if user already exists
         if User.objects.filter(username=phone_number).exists():
@@ -73,12 +77,14 @@ class RegisterView(APIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(request=LoginSerializer, responses={200: None})
     def post(self, request):
-        phone_number = request.data.get('phone_number')
-        password = request.data.get('password')
+        serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if not phone_number or not password:
-            return Response({"error": "Phone number and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        phone_number = serializer.validated_data['phone_number']
+        password = serializer.validated_data['password']
 
         user = authenticate(username=phone_number, password=password)
 
