@@ -15,6 +15,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Custom club settings
 MONTHLY_FEE = 750
 
+# PhonePe Configuration (Sandbox/UAT)
+PHONEPE_CONFIG = {
+    'MERCHANT_ID': 'PGTESTPAYUAT',
+    'SALT_KEY': '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399',
+    'SALT_INDEX': 1,
+    'ENV': 'UAT',
+    'BASE_URL': 'https://api-preprod.phonepe.com/apis/pg-sandbox',
+    'CALLBACK_URL': 'http://localhost:8000/api/financials/payment-callback/'  # Update this in production
+}
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
