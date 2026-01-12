@@ -15,7 +15,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Custom club settings
 MONTHLY_FEE = 750
 
-<<<<<<< HEAD
 # PhonePe Configuration (Sandbox/UAT)
 PHONEPE_CONFIG = {
     'CLIENT_ID': 'M23VC340MZKCY_2512111424',
@@ -25,8 +24,6 @@ PHONEPE_CONFIG = {
     'CALLBACK_URL': 'http://localhost:8000/api/financials/payment-callback/'  # Update this in production
 }
 
-=======
->>>>>>> origin/feat-cricket-club-backend-9509745213947822927
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/

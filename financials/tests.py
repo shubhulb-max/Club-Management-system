@@ -3,7 +3,6 @@ from django.core.management import call_command
 from players.models import Player
 from financials.models import Transaction
 from datetime import date, timedelta
-<<<<<<< HEAD
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -11,8 +10,6 @@ from rest_framework import status
 import base64
 import json
 from unittest.mock import patch, MagicMock
-=======
->>>>>>> origin/feat-cricket-club-backend-9509745213947822927
 
 class GenerateMonthlyFeesTest(TestCase):
 
@@ -54,7 +51,6 @@ class GenerateMonthlyFeesTest(TestCase):
             Transaction.objects.filter(player=self.active_player, category='monthly').count(),
             1 # Should not create a duplicate
         )
-<<<<<<< HEAD
 
 class PaymentFlowTests(TestCase):
     def setUp(self):
@@ -180,5 +176,3 @@ class PaymentFlowTests(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-=======
->>>>>>> origin/feat-cricket-club-backend-9509745213947822927
