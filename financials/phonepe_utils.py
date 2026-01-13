@@ -6,9 +6,13 @@ from phonepe.sdk.pg.common.models.request.meta_info import MetaInfo
 from phonepe.sdk.pg.env import Env
 
 def get_phonepe_client():
+    """
+    Utility to get the PhonePe client instance using settings.
+    """
     config = settings.PHONEPE_CONFIG
     env = Env.SANDBOX if config['ENV'] == 'SANDBOX' else Env.PRODUCTION
 
+    # If you need to pass 'should_publish_events', add it here. Default is usually False.
     return StandardCheckoutClient.get_instance(
         client_id=config['CLIENT_ID'],
         client_secret=config['CLIENT_SECRET'],
@@ -36,23 +40,18 @@ def initiate_phonepe_payment(transaction_id, amount, user_id):
     response = client.pay(request)
     return response
 
-def verify_callback_checksum(response_payload_base64, received_checksum):
+def check_payment_status(merchant_order_id):
     """
-    Verifies the callback request using the SDK.
-    It uses the SDK's validate_callback method.
+    Checks the server-to-server status of a specific order ID using the PhonePe SDK.
+    Returns the full response object containing state (response.state).
     """
     client = get_phonepe_client()
 
     try:
-        # Assuming we don't have Basic Auth enabled for callbacks in Sandbox, passing empty strings.
-        # This method typically validates the X-VERIFY header (received_checksum) against the payload.
-        response = client.validate_callback(
-            username="",
-            password="",
-            callback_header_data=received_checksum,
-            callback_response_data=response_payload_base64
-        )
-        return response.status
+        # Check status without additional details (details=False)
+        response = client.get_order_status(merchant_order_id, details=False)
+        return response
     except Exception as e:
-        # Logging the error would be ideal here
-        return False
+        # In a real app, log this error
+        print(f"Error checking PhonePe status: {e}")
+        return None
