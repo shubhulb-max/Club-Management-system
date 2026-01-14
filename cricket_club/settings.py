@@ -21,7 +21,7 @@ PHONEPE_CONFIG = {
     'CLIENT_SECRET': 'NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk',
     'CLIENT_VERSION': 1,
     'ENV': 'SANDBOX',  # Enum: SANDBOX or PRODUCTION
-    'CALLBACK_URL': 'http://localhost:8000/api/financials/payment-callback/'  # Update this in production
+    'CALLBACK_URL': 'http://localhost:3000/payment/status'  # Update this in production
 }
 
 
