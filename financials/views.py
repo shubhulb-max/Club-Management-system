@@ -3,6 +3,7 @@ import json
 import uuid
 from datetime import date
 
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,9 +15,33 @@ from .models import Transaction
 from .serializers import TransactionSerializer, InitiatePaymentSerializer, PaymentCallbackSerializer
 from .phonepe_utils import initiate_phonepe_payment, check_payment_status
 
+
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Transaction.objects.all()
+
+        if user.is_staff or user.is_superuser:
+            player_id = self.request.query_params.get('player_id')
+            if player_id:
+                try:
+                    player_id = int(player_id)
+                except (TypeError, ValueError):
+                    return Transaction.objects.none()
+                return queryset.filter(player_id=player_id)
+            return queryset
+
+        try:
+            player = user.player
+        except ObjectDoesNotExist:
+            return Transaction.objects.none()
+
+        return queryset.filter(player=player)
+
 
 class InitiatePaymentView(APIView):
     permission_classes = [IsAuthenticated]
