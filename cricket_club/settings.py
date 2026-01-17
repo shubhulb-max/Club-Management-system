@@ -15,6 +15,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Custom club settings
 MONTHLY_FEE = 750
 
+# PhonePe Configuration (Sandbox/UAT)
+PHONEPE_CONFIG = {
+    'CLIENT_ID': 'M23VC340MZKCY_2512111424',
+    'CLIENT_SECRET': 'NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk',
+    'CLIENT_VERSION': 1,
+    'ENV': 'SANDBOX',  # Enum: SANDBOX or PRODUCTION
+    'CALLBACK_URL': 'http://localhost:3000/payment/status'  # Update this in production
+}
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/

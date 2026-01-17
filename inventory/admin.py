@@ -1,9 +1,23 @@
 from django.contrib import admin
-from .models import InventoryItem, ItemAssignment, Sale
+from .models import InventoryCategory, InventoryItem, ItemAssignment, Sale
+
+class InventoryCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
 
 class InventoryItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'type', 'quantity', 'price')
-    list_filter = ('type',)
+    list_display = (
+        'name',
+        'category',
+        'type',
+        'quantity',
+        'available_quantity',
+        'missing_quantity',
+        'destroyed_quantity',
+        'distributed_quantity',
+        'price',
+    )
+    list_filter = ('type', 'category')
     search_fields = ('name', 'description')
 
 class ItemAssignmentAdmin(admin.ModelAdmin):
@@ -16,6 +30,7 @@ class SaleAdmin(admin.ModelAdmin):
     search_fields = ('item__name', 'player__first_name', 'player__last_name')
     list_filter = ('sale_date',)
 
+admin.site.register(InventoryCategory, InventoryCategoryAdmin)
 admin.site.register(InventoryItem, InventoryItemAdmin)
 admin.site.register(ItemAssignment, ItemAssignmentAdmin)
 admin.site.register(Sale, SaleAdmin)

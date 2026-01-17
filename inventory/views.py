@@ -1,6 +1,16 @@
 from rest_framework import viewsets
-from .models import InventoryItem, ItemAssignment, Sale
-from .serializers import InventoryItemSerializer, ItemAssignmentSerializer, SaleSerializer
+from .models import InventoryCategory, InventoryItem, ItemAssignment, Sale
+from .serializers import (
+    InventoryCategorySerializer,
+    InventoryItemSerializer,
+    ItemAssignmentSerializer,
+    SaleSerializer,
+)
+
+
+class InventoryCategoryViewSet(viewsets.ModelViewSet):
+    queryset = InventoryCategory.objects.all()
+    serializer_class = InventoryCategorySerializer
 
 class InventoryItemViewSet(viewsets.ModelViewSet):
     queryset = InventoryItem.objects.all()

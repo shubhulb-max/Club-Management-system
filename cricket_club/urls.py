@@ -12,6 +12,8 @@ from .api import router
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
+    path("api/financials/", include('financials.urls')),
+    path("api/auth/", include('players.urls')),
     path('api-token-auth/', views.obtain_auth_token),
     # Swagger UI:
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
