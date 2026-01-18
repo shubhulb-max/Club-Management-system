@@ -9,6 +9,8 @@ def create_sale_transaction(sender, instance, created, **kwargs):
     Automatically creates a Transaction when a new Sale is recorded.
     """
     if created:
+        if instance.item.price is None:
+            return
         Transaction.objects.create(
             player=instance.player,
             category='merchandise',

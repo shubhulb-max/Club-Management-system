@@ -1,5 +1,5 @@
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 from .models import Player, Subscription
@@ -64,7 +64,8 @@ class AuthTests(TestCase):
         self.assertIn("token", response.data)
 
         # Verify user and player created
-        user = User.objects.get(username="1234567890")
+        User = get_user_model()
+        user = User.objects.get(phone_number="1234567890")
         player = Player.objects.get(phone_number="1234567890")
         self.assertEqual(player.user, user)
         self.assertEqual(player.first_name, "New")
@@ -80,11 +81,12 @@ class AuthTests(TestCase):
         # Verify linkage
         self.unclaimed_player.refresh_from_db()
         self.assertIsNotNone(self.unclaimed_player.user)
-        self.assertEqual(self.unclaimed_player.user.username, "9988776655")
+        self.assertEqual(self.unclaimed_player.user.phone_number, "9988776655")
 
     def test_register_existing_user_fail(self):
         # First register
-        User.objects.create_user(username="1234567890", password="password")
+        User = get_user_model()
+        User.objects.create_user(phone_number="1234567890", password="password")
 
         # Try registering again
         data = {
@@ -95,7 +97,8 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_login_success(self):
-        User.objects.create_user(username="9999999999", password="password123")
+        User = get_user_model()
+        User.objects.create_user(phone_number="9999999999", password="password123")
 
         data = {
             "phone_number": "9999999999",

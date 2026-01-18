@@ -1,21 +1,29 @@
+from django.conf import settings
 from django.db import models
 from datetime import date, timedelta
-from django.contrib.auth.models import User
+
 
 class Player(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    age = models.PositiveIntegerField()
-    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
+    age = models.PositiveIntegerField(default=0)
+
+    profile_picture = models.ImageField(
+        upload_to="profile_pics/", null=True, blank=True
+    )
+    phone_number = models.CharField(max_length=15,unique=True, null=True, blank=True)
+
     ROLE_CHOICES = [
-        ('batsman', 'Batsman'),
-        ('bowler', 'Bowler'),
-        ('all_rounder', 'All-Rounder'),
-        ('wicket_keeper', 'Wicket-Keeper'),
+        ("batsman", "Batsman"),
+        ("bowler", "Bowler"),
+        ("all_rounder", "All-Rounder"),
+        ("wicket_keeper", "Wicket-Keeper"),
     ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="all_rounder")
 
     @property
     def membership_active(self):
@@ -30,8 +38,21 @@ class Player(models.Model):
             due_date__lt=thirty_days_ago
         ).exists()
 
+
+    def save(self, *args, **kwargs):
+        if self.user:
+            if not self.first_name:
+                self.first_name = self.user.first_name
+            if not self.last_name:
+                self.last_name = self.user.last_name
+            if not self.phone_number:
+                self.phone_number = self.user.phone_number
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
 
 class Membership(models.Model):
     player = models.OneToOneField(Player, on_delete=models.CASCADE)

@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 from rest_framework.authtoken import views
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from .api import router
+from .views import KPIsView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -15,6 +16,7 @@ urlpatterns = [
     path("api/financials/", include('financials.urls')),
     path("api/auth/", include('players.urls')),
     path('api-token-auth/', views.obtain_auth_token),
+    path("api/kpis/", KPIsView.as_view(), name="kpis"),
     # Swagger UI:
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

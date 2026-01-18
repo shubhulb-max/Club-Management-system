@@ -23,24 +23,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Transaction.objects.all()
-
-        if user.is_staff or user.is_superuser:
-            player_id = self.request.query_params.get('player_id')
-            if player_id:
-                try:
-                    player_id = int(player_id)
-                except (TypeError, ValueError):
-                    return Transaction.objects.none()
-                return queryset.filter(player_id=player_id)
-            return queryset
-
         try:
             player = user.player
         except ObjectDoesNotExist:
             return Transaction.objects.none()
 
-        return queryset.filter(player=player)
+        return Transaction.objects.filter(player=player)
 
 
 class InitiatePaymentView(APIView):

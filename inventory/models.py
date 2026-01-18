@@ -82,3 +82,8 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"Sale of {self.quantity_sold} x {self.item.name} to {self.player}"
+
+    def clean(self):
+        super().clean()
+        if self.item and self.item.price is None:
+            raise ValidationError("Selected merchandise item must have a price before a sale can be recorded.")

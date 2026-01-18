@@ -3,7 +3,7 @@ from django.core.management import call_command
 from players.models import Player
 from financials.models import Transaction
 from datetime import date, timedelta
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -55,7 +55,8 @@ class GenerateMonthlyFeesTest(TestCase):
 class PaymentFlowTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='password')
+        User = get_user_model()
+        self.user = User.objects.create_user(phone_number='9998887777', password='password')
         self.player = Player.objects.create(
             user=self.user,
             first_name="Test",

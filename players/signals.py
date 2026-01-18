@@ -29,6 +29,6 @@ def handle_new_player_creation(sender, instance, created, **kwargs):
             category='registration',
             amount=2000.00,
             due_date=datetime.date.today(),
-            paid=True,
+            paid=False,
             payment_date=datetime.date.today()
         )

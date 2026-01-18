@@ -1,4 +1,5 @@
 from rest_framework import routers
+from media_gallery.views import MediaViewSet
 from players.views import PlayerViewSet
 from teams.views import TeamViewSet
 from matches.views import MatchViewSet
@@ -19,6 +20,7 @@ router.register(r'matches', MatchViewSet)
 router.register(r'tournaments', TournamentViewSet)
 router.register(r'tournament-participations', TournamentParticipationViewSet)
 router.register(r'grounds', GroundViewSet)
+router.register(r'media', MediaViewSet)
 router.register(r'transactions', TransactionViewSet)
 router.register(r'inventory-categories', InventoryCategoryViewSet)
 router.register(r'inventory-items', InventoryItemViewSet)
