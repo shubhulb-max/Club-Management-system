@@ -1,6 +1,6 @@
 Django
-setuptools
 Pillow
+setuptools
 python-dateutil
 djangorestframework
 django-cors-headers
