@@ -3,6 +3,9 @@
 import os
 import sys
 
+# Provide a WSGI callable for deployments that point Gunicorn at manage:application.
+from cricket_club.wsgi import application  # noqa: F401
+
 
 def main():
     """Run administrative tasks."""
