@@ -18,9 +18,7 @@ services:
       - key: DJANGO_CORS_ALLOW_ALL_ORIGINS
         value: "true"
       - key: DATABASE_URL
-        fromDatabase:
-          name: cricket-club-db
-          property: connectionString
+        value: "postgresql://kk11:5Rla8UGvbCxTtVTaGEj99fnscCTProNJ@dpg-d6a2kk6mcj7s7391pc4g-a/kk11"
 databases:
-  - name: cricket-club-db
+  - name: kk11
     plan: free
