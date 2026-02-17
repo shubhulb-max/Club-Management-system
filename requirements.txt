@@ -5,3 +5,4 @@ djangorestframework==3.16.1
 django-cors-headers==4.9.0
 requests
 phonepe-pg-sdk-python
+gunicorn==25.1.0
