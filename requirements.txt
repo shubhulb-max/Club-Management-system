@@ -1,8 +1,11 @@
-Django==5.0.4
-Pillow==12.1.0
-python-dateutil==2.9.0.post0
-djangorestframework==3.16.1
-django-cors-headers==4.9.0
+Django
+Pillow
+python-dateutil
+djangorestframework
+django-cors-headers
 requests
 phonepe-pg-sdk-python
-gunicorn==25.1.0
+gunicorn
+drf_spectacular
+whitenoise
+dj-database-url

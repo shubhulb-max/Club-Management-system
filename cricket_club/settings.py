@@ -5,6 +5,8 @@ Django settings for cricket_club project.
 from pathlib import Path
 import os
 
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,13 +32,20 @@ PHONEPE_CONFIG = {
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # In production, this should be loaded from an environment variable.
-SECRET_KEY = "django-insecure-2*6kx2b(j3_5-m^!*0lwy086!g+nw378qz$sxbpuymj*zi6hd2"
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-2*6kx2b(j3_5-m^!*0lwy086!g+nw378qz$sxbpuymj*zi6hd2",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # In production, this should be set to False.
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
-ALLOWED_HOSTS = []
+allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host for host in allowed_hosts.split(",") if host] or [
+    "localhost",
+    "127.0.0.1",
+]
 
 
 # Application definition
@@ -67,6 +76,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -100,10 +110,11 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
 }
 
 
@@ -142,11 +153,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
+cors_allow_all_origins = os.getenv("DJANGO_CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true"
+CORS_ALLOW_ALL_ORIGINS = cors_allow_all_origins
+
+cors_allowed_origins = os.getenv("DJANGO_CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [origin for origin in cors_allowed_origins.split(",") if origin] or [
     "http://localhost:3000",
 ]
+
+csrf_trusted_origins = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [origin for origin in csrf_trusted_origins.split(",") if origin]
 
 # DRF settings
 REST_FRAMEWORK = {
