@@ -161,9 +161,9 @@ cors_allow_all_origins = os.getenv("DJANGO_CORS_ALLOW_ALL_ORIGINS", "false").low
 CORS_ALLOW_ALL_ORIGINS = cors_allow_all_origins
 
 cors_allowed_origins = os.getenv("DJANGO_CORS_ALLOWED_ORIGINS", "")
-CORS_ALLOWED_ORIGINS = [origin for origin in cors_allowed_origins.split(",") if origin] or [
-    "http://localhost:3000",
-]
+CORS_ALLOWED_ORIGINS = [
+    origin for origin in cors_allowed_origins.split(",") if origin
+] or ["http://localhost:3000", "club-management-system-006z.onrender.com"]
 
 csrf_trusted_origins = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [origin for origin in csrf_trusted_origins.split(",") if origin]
