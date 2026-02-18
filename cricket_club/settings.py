@@ -4,6 +4,9 @@ Django settings for cricket_club project.
 
 from pathlib import Path
 import os
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 import dj_database_url
 
@@ -110,11 +113,17 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        ssl_require=not DEBUG,
-    )
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "u893900277_kk11",
+        "USER": "u893900277_kk11",
+        "PASSWORD": os.environ.get("DB_PASSWORD")or "uQ6$CgI4p*e?",
+        "HOST": "193.203.184.125",
+        "PORT": "3306",
+        "OPTIONS": {
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+    }
 }
 
 
@@ -163,7 +172,7 @@ CORS_ALLOW_ALL_ORIGINS = cors_allow_all_origins
 cors_allowed_origins = os.getenv("DJANGO_CORS_ALLOWED_ORIGINS", "")
 CORS_ALLOWED_ORIGINS = [
     origin for origin in cors_allowed_origins.split(",") if origin
-] or ["http://localhost:3000", "club-management-system-006z.onrender.com"]
+] or ["http://localhost:3000", "http://club-management-system-006z.onrender.com"]
 
 csrf_trusted_origins = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [origin for origin in csrf_trusted_origins.split(",") if origin]
