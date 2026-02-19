@@ -114,12 +114,12 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "u893900277_kk11",
-        "USER": "u893900277_kk11",
-        "PASSWORD": os.environ.get("DB_PASSWORD")or "uQ6$CgI4p*e?",
-        "HOST": "193.203.184.125",
-        "PORT": "3306",
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
+        "NAME": os.getenv("DB_NAME", "u893900277_kk11"),
+        "USER": os.getenv("DB_USER", "u893900277_kk11"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "uQ6$CgI4p*e?"),
+        "HOST": os.getenv("DB_HOST", "193.203.184.125"),
+        "PORT": os.getenv("DB_PORT", "3306"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
