@@ -21,9 +21,12 @@ WORKDIR /app
 
 # Install Python deps first (better layer caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir gunicorn
 
+# Ensure pkg_resources exists (setuptools provides it)
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip install --no-cache-dir gunicorn
 # Copy project
 COPY . .
 
