@@ -8,6 +8,7 @@ import pymysql
 
 pymysql.install_as_MySQLdb()
 
+
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
