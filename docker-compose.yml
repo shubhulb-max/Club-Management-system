@@ -18,7 +18,6 @@ services:
       DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
 
       # External MySQL DB (your host)
-      DB_ENGINE: "django.db.backends.mysql"
       DB_NAME: "u893900277_kk11"
       DB_USER: "u893900277_kk11"
       DB_PASSWORD: 'uQ6$CgI4p*e?'
