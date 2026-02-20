@@ -5,10 +5,10 @@ import pymysql
 from pathlib import Path
 import os
 
+
+pymysql.version_info = (1, 4, 6, 'final', 0)
 pymysql.install_as_MySQLdb()
 
-
-import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,18 +30,11 @@ PHONEPE_CONFIG = {
 }
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-# In production, this should be loaded from an environment variable.
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
     "django-insecure-2*6kx2b(j3_5-m^!*0lwy086!g+nw378qz$sxbpuymj*zi6hd2",
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# In production, this should be set to False.
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
 allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
