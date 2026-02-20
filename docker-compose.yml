@@ -20,7 +20,7 @@ services:
       # External MySQL DB (your host)
       DB_NAME: "u893900277_kk11"
       DB_USER: "u893900277_kk11"
-      DB_PASSWORD: 'uQ6$CgI4p*e?'
+      DB_PASSWORD: 'uQ6$$CgI4p*e?'
       DB_HOST: "193.203.184.125"
       DB_PORT: "3306"
 
