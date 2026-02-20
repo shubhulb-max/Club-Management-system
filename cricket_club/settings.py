@@ -1,10 +1,9 @@
 """
 Django settings for cricket_club project.
 """
-
+import pymysql
 from pathlib import Path
 import os
-import pymysql
 
 pymysql.install_as_MySQLdb()
 
