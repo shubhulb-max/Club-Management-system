@@ -1,14 +1,26 @@
 import uuid
 from django.conf import settings
-from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient
-from phonepe.sdk.pg.payments.v2.models.request.standard_checkout_pay_request import StandardCheckoutPayRequest
-from phonepe.sdk.pg.common.models.request.meta_info import MetaInfo
-from phonepe.sdk.pg.env import Env
+
+
+def _load_phonepe_sdk():
+    try:
+        from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient
+        from phonepe.sdk.pg.payments.v2.models.request.standard_checkout_pay_request import (
+            StandardCheckoutPayRequest,
+        )
+        from phonepe.sdk.pg.common.models.request.meta_info import MetaInfo
+        from phonepe.sdk.pg.env import Env
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "PhonePe SDK dependencies are missing. Ensure 'setuptools' is installed in the runtime image."
+        ) from exc
+    return StandardCheckoutClient, StandardCheckoutPayRequest, MetaInfo, Env
 
 def get_phonepe_client():
     """
     Utility to get the PhonePe client instance using settings.
     """
+    StandardCheckoutClient, _, _, Env = _load_phonepe_sdk()
     config = settings.PHONEPE_CONFIG
     env = Env.SANDBOX if config['ENV'] == 'SANDBOX' else Env.PRODUCTION
 
@@ -24,6 +36,7 @@ def initiate_phonepe_payment(transaction_id, amount, user_id):
     """
     Initiates a payment request to PhonePe using the SDK.
     """
+    _, StandardCheckoutPayRequest, MetaInfo, _ = _load_phonepe_sdk()
     config = settings.PHONEPE_CONFIG
     client = get_phonepe_client()
 
