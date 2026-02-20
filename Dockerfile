@@ -1,48 +1,54 @@
-# -------- Base image --------
-FROM python:3.12
+# -------- Base image (Stable for PhonePe SDK) --------
+FROM python:3.12.6-bookworm
 
 # -------- Python runtime env --------
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# -------- OS deps --------
-# - mysqlclient build deps: default-libmysqlclient-dev, build-essential, pkg-config
-# - netcat-openbsd: optional, useful for DB port check (if you use nc in entrypoint)
-# - curl: optional
+# -------- OS dependencies --------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     default-libmysqlclient-dev \
     build-essential \
     pkg-config \
     netcat-openbsd \
     curl \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# -------- Install pip tooling first --------
-# pkg_resources comes from setuptools (needed by apscheduler/phonepe dependency chain)
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+# -------- Upgrade pip tooling --------
+# pkg_resources comes from setuptools (required by apscheduler used inside PhonePe SDK)
+RUN python -m pip install --no-cache-dir --upgrade \
+    pip==24.2 \
+    setuptools==75.1.0 \
+    wheel
+
+# -------- Copy requirements --------
+COPY requirements.txt .
 
 # -------- Install dependencies --------
-COPY requirements.txt /app/requirements.txt
-
-# Install your requirements
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
-# Force correct mysqlclient version (Django requires >=2.2.1)
+# -------- Force compatible APScheduler (important for PhonePe) --------
+# Some newer versions cause issues
+RUN python -m pip install --no-cache-dir "apscheduler==3.10.4"
+
+# -------- Ensure mysqlclient version compatible with Django --------
 RUN python -m pip uninstall -y mysqlclient || true \
-    && python -m pip install --no-cache-dir "mysqlclient>=2.2.1"
+    && python -m pip install --no-cache-dir "mysqlclient>=2.2.4"
 
-# Install gunicorn
-RUN python -m pip install --no-cache-dir gunicorn
+# -------- Install Gunicorn --------
+RUN python -m pip install --no-cache-dir gunicorn==21.2.0
 
-# Verify critical imports at build time (fails build if missing)
+# -------- Verify critical imports at build time --------
 RUN python -c "import pkg_resources; print('pkg_resources OK')" \
+    && python -c "import apscheduler; print('apscheduler OK')" \
     && python -c "import MySQLdb; print('mysqlclient OK')" \
-    && python -c "import pkg_resources; print('mysqlclient version:', pkg_resources.get_distribution('mysqlclient').version)"
+    && python -c "from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient; print('PhonePe SDK OK')"
 
 # -------- Copy project files --------
-COPY . /app
+COPY . .
 
 # -------- Entrypoint --------
 COPY ./entrypoint.sh /entrypoint.sh
@@ -52,6 +58,4 @@ EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Use env var for WSGI module if you want:
-# DJANGO_WSGI_MODULE=cricket_club.wsgi:application
 CMD ["sh", "-c", "gunicorn ${DJANGO_WSGI_MODULE:-cricket_club.wsgi:application} --bind 0.0.0.0:8000 --workers 3 --timeout 120"]

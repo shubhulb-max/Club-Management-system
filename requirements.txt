@@ -1,4 +1,7 @@
 Django
+apscheduler==3.10.4
+setuptools>=75.0.0
+mysqlclient>=2.2.4
 Pillow
 setuptools
 python-dateutil
