@@ -32,7 +32,7 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 # -------- Force compatible APScheduler (important for PhonePe) --------
 # Some newer versions cause issues
-RUN python -m pip install --no-cache-dir "apscheduler==3.10.4"
+RUN python -m pip install --no-cache-dir "apscheduler==3.10.1"
 
 # -------- Ensure mysqlclient version compatible with Django --------
 RUN python -m pip uninstall -y mysqlclient || true \
