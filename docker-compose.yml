@@ -1,47 +1,30 @@
-
 services:
-  db:
-    image: mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: club_management
-      MYSQL_USER: club_user
-      MYSQL_PASSWORD: club_password
-      MYSQL_ROOT_PASSWORD: root_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "club_user", "-pclub_password"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   web:
     build: .
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DJANGO_DEBUG: "true"
-      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
-      DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
-      DB_ENGINE: "django.db.backends.mysql"
-      DB_NAME: "club_management"
-      DB_USER: "club_user"
-      DB_PASSWORD: "club_password"
-      DB_HOST: "db"
-      DB_PORT: "3306"
-    ports:
-      - "8000:8000"
+
+    # If you want to keep code hot-reload/dev style
     volumes:
       - .:/app
       - static_data:/app/staticfiles
       - media_data:/app/media
 
+    ports:
+      - "8000:8000"
+
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
+
+      # External MySQL DB (your host)
+      DB_ENGINE: "django.db.backends.mysql"
+      DB_NAME: "u893900277_kk11"
+      DB_USER: "u893900277_kk11"
+      DB_PASSWORD: "uQ6$CgI4p*e?"
+      DB_HOST: "193.203.184.125"
+      DB_PORT: "3306"
+
 volumes:
-  db_data:
   static_data:
   media_data:
