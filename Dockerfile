@@ -36,7 +36,7 @@ RUN python -m pip install --no-cache-dir "apscheduler==3.10.1"
 
 # -------- Ensure mysqlclient version compatible with Django --------
 RUN python -m pip uninstall -y mysqlclient || true \
-    && python -m pip install --no-cache-dir "mysqlclient>=2.2.4"
+    && python -m pip install --no-cache-dir --upgrade --force-reinstall "mysqlclient==2.2.4"
 
 # -------- Install Gunicorn --------
 RUN python -m pip install --no-cache-dir gunicorn==21.2.0
