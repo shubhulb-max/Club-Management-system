@@ -1,14 +1,14 @@
-# Use Python 3.12
-FROM python:3.12-slim
+# -------- Base image --------
+FROM python:3.14
 
-# Prevent .pyc + make logs unbuffered
+# -------- Python runtime env --------
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Install system deps:
-# - default-libmysqlclient-dev + build-essential + pkg-config => mysqlclient build
-# - netcat-openbsd => (optional) useful for DB wait checks
-# - curl => optional
+# -------- OS deps --------
+# - mysqlclient build deps: default-libmysqlclient-dev, build-essential, pkg-config
+# - netcat-openbsd: optional, useful for DB port check (if you use nc in entrypoint)
+# - curl: optional
 RUN apt-get update && apt-get install -y --no-install-recommends \
     default-libmysqlclient-dev \
     build-essential \
@@ -19,18 +19,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python deps first (better layer caching)
-COPY requirements.txt .
-
-# Ensure pkg_resources exists (setuptools provides it)
+# -------- Install pip tooling first --------
+# pkg_resources comes from setuptools (needed by apscheduler/phonepe dependency chain)
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
-RUN python -m pip install --no-cache-dir -r requirements.txt \
-    && python -m pip install --no-cache-dir gunicorn
-# Copy project
-COPY . .
+# -------- Install dependencies --------
+COPY requirements.txt /app/requirements.txt
 
-# Entrypoint script
+# Install your requirements
+RUN python -m pip install --no-cache-dir -r requirements.txt
+
+# Force correct mysqlclient version (Django requires >=2.2.1)
+RUN python -m pip uninstall -y mysqlclient || true \
+    && python -m pip install --no-cache-dir "mysqlclient>=2.2.1"
+
+# Install gunicorn
+RUN python -m pip install --no-cache-dir gunicorn
+
+# Verify critical imports at build time (fails build if missing)
+RUN python -c "import pkg_resources; print('pkg_resources OK')" \
+    && python -c "import MySQLdb; print('mysqlclient OK')" \
+    && python -c "import pkg_resources; print('mysqlclient version:', pkg_resources.get_distribution('mysqlclient').version)"
+
+# -------- Copy project files --------
+COPY . /app
+
+# -------- Entrypoint --------
 COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
@@ -38,6 +52,6 @@ EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Use env var for WSGI module (set in docker-compose/.env):
-# DJANGO_WSGI_MODULE=yourproject.wsgi:application
-CMD ["sh", "-c", "gunicorn ${DJANGO_WSGI_MODULE:-YOUR_PROJECT_NAME.wsgi:application} --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
+# Use env var for WSGI module if you want:
+# DJANGO_WSGI_MODULE=cricket_club.wsgi:application
+CMD ["sh", "-c", "gunicorn ${DJANGO_WSGI_MODULE:-cricket_club.wsgi:application} --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
