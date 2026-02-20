@@ -107,6 +107,7 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 
 DATABASES = {
     "default": {
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
         "NAME": os.getenv("DB_NAME", "u893900277_kk11"),
         "USER": os.getenv("DB_USER", "u893900277_kk11"),
         "PASSWORD": os.getenv("DB_PASSWORD", "uQ6$CgI4p*e?"),
