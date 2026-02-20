@@ -1,5 +1,5 @@
 # -------- Base image --------
-FROM python:3.15-rc-trixie
+FROM python:3.12
 
 # -------- Python runtime env --------
 ENV PYTHONDONTWRITEBYTECODE=1 \
