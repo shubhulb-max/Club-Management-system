@@ -1,4 +1,15 @@
 services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: "club_management"
+      MYSQL_USER: "club_user"
+      MYSQL_PASSWORD: "club_password"
+      MYSQL_ROOT_PASSWORD: "root_password"
+    volumes:
+      - db_data:/var/lib/mysql
+
   web:
     build: .
     restart: unless-stopped
@@ -17,13 +28,16 @@ services:
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
       DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
 
-      # External MySQL DB (your host)
-      DB_NAME: "u893900277_kk11"
-      DB_USER: "u893900277_kk11"
-      DB_PASSWORD: 'uQ6$$CgI4p*e?'
-      DB_HOST: "193.203.184.125"
+      DB_ENGINE: "django.db.backends.mysql"
+      DB_NAME: "club_management"
+      DB_USER: "club_user"
+      DB_PASSWORD: "club_password"
+      DB_HOST: "db"
       DB_PORT: "3306"
+    depends_on:
+      - db
 
 volumes:
+  db_data:
   static_data:
   media_data:
