@@ -12,4 +12,3 @@ gunicorn
 drf_spectacular
 whitenoise
 dj-database-url
-pymysql
