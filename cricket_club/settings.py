@@ -100,11 +100,11 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "NAME": "club_management",
+        "USER": "club_user",
+        "PASSWORD": "club_password",
+        "HOST": "db",
+        "PORT": "3306",
         "CONN_MAX_AGE": 60,
         "OPTIONS": {
             "connect_timeout": 10,
@@ -113,7 +113,7 @@ DATABASES = {
     }
 }
 
-# Password validation
+  
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
