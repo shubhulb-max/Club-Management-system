@@ -17,7 +17,7 @@ PHONEPE_CONFIG = {
     "CLIENT_SECRET": "NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk",
     "CLIENT_VERSION": 1,
     "ENV": "SANDBOX",  # Enum: SANDBOX or PRODUCTION
-    "CALLBACK_URL": "http://72.61.232.12:8000/payment/status",  # Update this in production
+    "CALLBACK_URL": "http://72.61.243.80:8000/payment/status",  # Update this in production
 }
 
 
@@ -28,7 +28,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
-ALLOWED_HOSTS = ["72.61.232.12", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["72.61.243.80", "localhost", "127.0.0.1"]
 
 # Application definition
 
@@ -155,7 +155,7 @@ CORS_ALLOWED_ORIGINS = [
 ] or ["http://localhost:3000", "http://club-management-system-006z.onrender.com","https://kk11.in"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://72.61.232.12",
+    "http://72.61.243.80",
     "http://localhost:3000",
 ]
 # DRF settings
