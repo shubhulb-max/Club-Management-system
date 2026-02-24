@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import os
 
@@ -14,11 +13,11 @@ MONTHLY_FEE = 750
 
 # PhonePe Configuration (Sandbox/UAT)
 PHONEPE_CONFIG = {
-    'CLIENT_ID': 'M23VC340MZKCY_2512111424',
-    'CLIENT_SECRET': 'NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk',
-    'CLIENT_VERSION': 1,
-    'ENV': 'SANDBOX',  # Enum: SANDBOX or PRODUCTION
-    'CALLBACK_URL': 'http://localhost:3000/payment/status'  # Update this in production
+    "CLIENT_ID": "M23VC340MZKCY_2512111424",
+    "CLIENT_SECRET": "NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk",
+    "CLIENT_VERSION": 1,
+    "ENV": "SANDBOX",  # Enum: SANDBOX or PRODUCTION
+    "CALLBACK_URL": "http://72.61.232.12:8000/payment/status",  # Update this in production
 }
 
 
@@ -29,12 +28,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
-allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [host for host in allowed_hosts.split(",") if host] or [
-    "localhost",
-    "127.0.0.1",
-]
-
+ALLOWED_HOSTS = ["72.61.232.12", "localhost", "127.0.0.1"]
 
 # Application definition
 
@@ -113,7 +107,7 @@ DATABASES = {
     }
 }
 
-  
+
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -160,9 +154,10 @@ CORS_ALLOWED_ORIGINS = [
     origin for origin in cors_allowed_origins.split(",") if origin
 ] or ["http://localhost:3000", "http://club-management-system-006z.onrender.com","https://kk11.in"]
 
-csrf_trusted_origins = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
-CSRF_TRUSTED_ORIGINS = [origin for origin in csrf_trusted_origins.split(",") if origin]
-
+CSRF_TRUSTED_ORIGINS = [
+    "http://72.61.232.12",
+    "http://localhost:3000",
+]
 # DRF settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
