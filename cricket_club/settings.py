@@ -1,6 +1,4 @@
-"""
-Django settings for cricket_club project.
-"""
+
 from pathlib import Path
 import os
 
@@ -101,7 +99,7 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DB_ENGINE"),
+        "ENGINE": "django.db.backends.mysql",
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
