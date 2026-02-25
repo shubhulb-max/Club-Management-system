@@ -28,7 +28,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
-ALLOWED_HOSTS = ["72.61.243.80", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["72.61.243.80", "localhost", "127.0.0.1","kk11.in","api.kk11.in"]
 
 # Application definition
 
