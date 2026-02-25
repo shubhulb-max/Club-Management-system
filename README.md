@@ -7,11 +7,11 @@ This repository hosts the backend for the Cricket Club Management System, built 
 
 ## Authentication
 
-The API uses Token Authentication. To authenticate requests, include the `Authorization` header with the token obtained from the `/api-token-auth/` endpoint.
+The API uses JWT Authentication. To authenticate requests, include the `Authorization` header with the access token obtained from the `/api/auth/login/` endpoint.
 
 **Header Format:**
 ```
-Authorization: Token <your_token>
+Authorization: Bearer <access_token>
 ```
 
 ## API Endpoints

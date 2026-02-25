@@ -5,6 +5,7 @@ mysqlclient>=2.2.4
 Pillow
 python-dateutil
 djangorestframework
+djangorestframework-simplejwt
 django-cors-headers
 requests
 phonepe-pg-sdk-python

@@ -4,13 +4,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Q
 from django.utils import timezone
-from django.contrib.auth import authenticate, get_user_model
-from rest_framework.authtoken.models import Token
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_spectacular.utils import extend_schema
 from django.db import transaction
 from .models import Player
 from .serializers import PlayerSerializer
-from .auth_serializers import RegisterSerializer, LoginSerializer
+from .auth_serializers import RegisterSerializer, CustomTokenObtainPairSerializer
 from teams.models import Team
 from teams.serializers import TeamSerializer
 from matches.models import Match
@@ -74,46 +75,30 @@ class RegisterView(APIView):
                     role='all_rounder'
                 )
 
-            token, _ = Token.objects.get_or_create(user=user)
+            refresh = RefreshToken.for_user(user)
+            player_for_token = getattr(user, "player", None)
+            refresh["role"] = "player"
+            refresh["first_name"] = user.first_name or ""
+            refresh["last_name"] = user.last_name or ""
+            refresh["player_id"] = player_for_token.id if player_for_token else None
+            refresh["player_role"] = player_for_token.role if player_for_token else None
 
         return Response({
             "message": "Registration successful",
-            "token": token.key,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
             "user_id": user.id,
             "player_id": user.player.id,
-            "role": "player"
+            "role": "player",
+            "first_name": user.first_name or "",
+            "last_name": user.last_name or "",
+            "player_role": user.player.role if hasattr(user, "player") else None,
+            "dashboard_url": "/api/auth/dashboard/"
         }, status=status.HTTP_201_CREATED)
 
-class LoginView(APIView):
+class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
-
-    @extend_schema(request=LoginSerializer, responses={200: None})
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        if not serializer.is_valid():
-             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        phone_number = serializer.validated_data['phone_number']
-        password = serializer.validated_data['password']
-
-        user = authenticate(phone_number=phone_number, password=password)
-
-        if user:
-            token, _ = Token.objects.get_or_create(user=user)
-            player = getattr(user, "player", None)
-            player_id = player.id if player else None
-            return Response({
-                "token": token.key,
-                "user_id": user.id,
-                "player_id": player_id,
-                "role": "player",
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "player_role": player.role if player else None,
-                "dashboard_url": "/api/auth/dashboard/"
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+    serializer_class = CustomTokenObtainPairSerializer
 
 class PlayerDashboardView(APIView):
     permission_classes = [IsAuthenticated]

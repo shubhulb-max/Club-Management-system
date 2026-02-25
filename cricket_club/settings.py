@@ -17,7 +17,7 @@ PHONEPE_CONFIG = {
     "CLIENT_SECRET": "NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk",
     "CLIENT_VERSION": 1,
     "ENV": "SANDBOX",  # Enum: SANDBOX or PRODUCTION
-    "CALLBACK_URL": "https://api.kk11.in/payment/status",  # Update this in production
+    "CALLBACK_URL": "http://api.kk11.in/payment/status",  # Update this in production
 }
 
 
@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     "grounds",
     "media_gallery",
     "rest_framework",
-    "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "corsheaders",
     "drf_spectacular",
 ]
@@ -158,12 +158,16 @@ CSRF_TRUSTED_ORIGINS = ["http://72.61.243.80", "http://localhost:3000", "https:/
 # DRF settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 SPECTACULAR_SETTINGS = {
