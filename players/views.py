@@ -29,41 +29,42 @@ class RegisterView(APIView):
         first_name = serializer.validated_data.get('first_name')
         last_name = serializer.validated_data.get('last_name')
 
-        # 1️⃣ Prevent duplicate users
-        if User.objects.filter(phone_number=phone).exists():
-            return Response(
-                {"error": "Account with this phone number already exists."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        with transaction.atomic():
+            # 1️⃣ Prevent duplicate users
+            if User.objects.filter(phone_number=phone).exists():
+                return Response(
+                    {"error": "Account with this phone number already exists."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        # 2️⃣ Look for existing Player (admin-created)
-        player = Player.objects.filter(phone_number=phone).select_for_update().first()
+            # 2️⃣ Look for existing Player (admin-created)
+            player = Player.objects.filter(phone_number=phone).select_for_update().first()
 
-        # 3️⃣ Create user
-        user = User.objects.create_user(
-            phone_number=phone,
-            password=password,
-            first_name=first_name or (player.first_name if player else ""),
-            last_name=last_name or (player.last_name if player else ""),
-        )
-
-        # 4️⃣ Link or create Player
-        if player:
-            if player.user:
-                raise ValueError("Player already linked to a user.")
-            player.user = user
-            player.save(update_fields=['user'])
-        else:
-            Player.objects.create(
-                user=user,
-                first_name=first_name,
-                last_name=last_name,
+            # 3️⃣ Create user
+            user = User.objects.create_user(
                 phone_number=phone,
-                age=0,
-                role='all_rounder'
+                password=password,
+                first_name=first_name or (player.first_name if player else ""),
+                last_name=last_name or (player.last_name if player else ""),
             )
 
-        token, _ = Token.objects.get_or_create(user=user)
+            # 4️⃣ Link or create Player
+            if player:
+                if player.user:
+                    raise ValueError("Player already linked to a user.")
+                player.user = user
+                player.save(update_fields=['user'])
+            else:
+                Player.objects.create(
+                    user=user,
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone_number=phone,
+                    age=0,
+                    role='all_rounder'
+                )
+
+            token, _ = Token.objects.get_or_create(user=user)
 
         return Response({
             "message": "Registration successful",
