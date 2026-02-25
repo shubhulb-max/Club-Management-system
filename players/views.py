@@ -100,12 +100,16 @@ class LoginView(APIView):
 
         if user:
             token, _ = Token.objects.get_or_create(user=user)
-            player_id = user.player.id if hasattr(user, 'player') else None
+            player = getattr(user, "player", None)
+            player_id = player.id if player else None
             return Response({
                 "token": token.key,
                 "user_id": user.id,
                 "player_id": player_id,
                 "role": "player",
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "player_role": player.role if player else None,
                 "dashboard_url": "/api/auth/dashboard/"
             }, status=status.HTTP_200_OK)
         else:
