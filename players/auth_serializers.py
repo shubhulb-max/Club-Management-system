@@ -30,6 +30,11 @@ class LoginSerializer(serializers.Serializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def _get_role(self, user):
+        if getattr(user, "is_superuser", False):
+            return "admin"
+        return "player"
+
     def _sync_user_names_from_player(self, user, player):
         updated_fields = []
         if player.first_name and not user.first_name:
@@ -61,7 +66,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
         player = getattr(user, "player", None)
-        token["role"] = "player"
+        role = cls()._get_role(user)
+        token["role"] = role
         token["first_name"] = user.first_name or ""
         token["last_name"] = user.last_name or ""
         token["player_id"] = player.id if player else None
@@ -85,8 +91,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         if not player:
             player = getattr(user, "player", None)
+        role = self._get_role(user)
         data.update({
-            "role": "player",
+            "role": role,
             "first_name": user.first_name or "",
             "last_name": user.last_name or "",
             "player_id": player.id if player else None,
