@@ -17,7 +17,7 @@ PHONEPE_CONFIG = {
     "CLIENT_SECRET": "NDExY2I3YWEtNjc1Ni00ZmFiLTliZWEtYTZiNDNjNjRmZDdk",
     "CLIENT_VERSION": 1,
     "ENV": "SANDBOX",  # Enum: SANDBOX or PRODUCTION
-    "CALLBACK_URL": "http://api.kk11.in/payment/status",  # Update this in production
+    "CALLBACK_URL": "http://kk11.in/payment/status",  # Update this in production
 }
 
 

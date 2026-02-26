@@ -130,8 +130,13 @@ class PlayerDashboardView(APIView):
 
         recent_media = Media.objects.all().order_by("-uploaded_at")[:10]
 
+        profile_picture_url = None
+        if player.profile_picture:
+            profile_picture_url = request.build_absolute_uri(player.profile_picture.url)
+
         return Response({
             "player": PlayerSerializer(player).data,
+            "profile_picture": profile_picture_url,
             "teams": TeamSerializer(teams, many=True).data,
             "other_teams": TeamSerializer(other_teams, many=True).data,
             "upcoming_matches": MatchSerializer(upcoming_matches, many=True).data,
