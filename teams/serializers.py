@@ -18,4 +18,4 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         # Add 'player_ids' to the fields list
-        fields = ['id', 'name', 'captain', 'players', 'player_ids']
+        fields = ['id', 'name', 'captain', 'logo', 'players', 'player_ids']
