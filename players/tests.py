@@ -73,7 +73,9 @@ class AuthTests(TestCase):
     def test_register_claim_existing_player(self):
         data = {
             "phone_number": "9988776655",
-            "password": "password123"
+            "password": "password123",
+            "first_name": "Updated",
+            "last_name": "Name"
         }
         response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -82,6 +84,8 @@ class AuthTests(TestCase):
         self.unclaimed_player.refresh_from_db()
         self.assertIsNotNone(self.unclaimed_player.user)
         self.assertEqual(self.unclaimed_player.user.phone_number, "9988776655")
+        self.assertEqual(self.unclaimed_player.first_name, "Updated")
+        self.assertEqual(self.unclaimed_player.last_name, "Name")
 
     def test_register_existing_user_fail(self):
         # First register
@@ -91,7 +95,9 @@ class AuthTests(TestCase):
         # Try registering again
         data = {
             "phone_number": "1234567890",
-            "password": "password123"
+            "password": "password123",
+            "first_name": "Existing",
+            "last_name": "User"
         }
         response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

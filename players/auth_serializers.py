@@ -13,8 +13,8 @@ class RegisterSerializer(serializers.Serializer):
     )
     phone_number = serializers.CharField(max_length=15, required=True, validators=[phone_validator])
     password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
-    first_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
-    last_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    first_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
+    last_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
 
     def validate_password(self, value):
         validate_password(value)

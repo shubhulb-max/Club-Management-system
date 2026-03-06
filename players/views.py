@@ -69,7 +69,16 @@ class RegisterView(APIView):
                 if player.user:
                     raise ValueError("Player already linked to a user.")
                 player.user = user
-                player.save(update_fields=['user'])
+                if first_name:
+                    player.first_name = first_name
+                if last_name:
+                    player.last_name = last_name
+                player.save(update_fields=['user', 'first_name', 'last_name'])
+                if first_name:
+                    user.first_name = first_name
+                if last_name:
+                    user.last_name = last_name
+                user.save(update_fields=['first_name', 'last_name'])
             else:
                 Player.objects.create(
                     user=user,
