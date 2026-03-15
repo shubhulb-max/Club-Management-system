@@ -11,6 +11,7 @@ import base64
 import json
 from unittest.mock import patch, MagicMock
 
+
 class GenerateMonthlyFeesTest(TestCase):
 
     def setUp(self):
@@ -99,6 +100,88 @@ class PaymentFlowTests(TestCase):
 
         response = self.client.post(self.initiate_url, {'transaction_id': self.transaction.id})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class GenerateMonthlyInvoicesApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        User = get_user_model()
+        self.admin_user = User.objects.create_user(
+            phone_number='9000000001',
+            password='password',
+            is_staff=True,
+        )
+        self.regular_user = User.objects.create_user(
+            phone_number='9000000002',
+            password='password',
+        )
+        self.active_player = Player.objects.create(
+            first_name='Active',
+            last_name='Member',
+            age=21,
+            role='batsman',
+            phone_number='8000000001',
+        )
+        self.overdue_player = Player.objects.create(
+            first_name='Inactive',
+            last_name='Member',
+            age=22,
+            role='bowler',
+            phone_number='8000000002',
+        )
+        Transaction.objects.create(
+            player=self.overdue_player,
+            category='monthly',
+            amount=750,
+            due_date=date.today() - timedelta(days=31),
+            paid=False,
+        )
+        self.url = reverse('generate-monthly-invoices')
+
+    def test_admin_can_generate_monthly_invoices(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['billable_players'], 1)
+        self.assertEqual(response.data['created_invoices'], 1)
+        self.assertEqual(response.data['skipped_existing'], 0)
+        self.assertEqual(response.data['billing_date'], '2026-03-01')
+        self.assertTrue(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                due_date=date(2026, 3, 1),
+                paid=False,
+            ).exists()
+        )
+
+    def test_admin_generation_is_idempotent(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        first_response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+        second_response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.data['created_invoices'], 0)
+        self.assertEqual(second_response.data['skipped_existing'], 1)
+        self.assertEqual(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                due_date=date(2026, 3, 1),
+            ).count(),
+            1,
+        )
+
+    def test_non_admin_cannot_generate_monthly_invoices(self):
+        self.client.force_authenticate(user=self.regular_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     @patch('financials.views.verify_callback_checksum')
     def test_payment_callback_success_s2s(self, mock_verify):

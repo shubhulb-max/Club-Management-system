@@ -7,13 +7,20 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Transaction
-from .serializers import TransactionSerializer, InitiatePaymentSerializer, PaymentCallbackSerializer
+from .serializers import (
+    TransactionSerializer,
+    InitiatePaymentSerializer,
+    PaymentCallbackSerializer,
+    GenerateMonthlyInvoicesSerializer,
+)
 from .phonepe_utils import initiate_phonepe_payment, check_payment_status
+from .services import generate_monthly_invoices
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -142,3 +149,27 @@ class PaymentCallbackView(APIView):
 
         except Exception as e:
              return Response({"error": f"Error processing callback: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GenerateMonthlyInvoicesView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(request=GenerateMonthlyInvoicesSerializer, responses={200: None})
+    def post(self, request):
+        serializer = GenerateMonthlyInvoicesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        billing_date = serializer.validated_data.get("billing_date")
+        result = generate_monthly_invoices(billing_date=billing_date)
+
+        return Response(
+            {
+                "message": "Monthly invoices generated successfully.",
+                "billing_date": (billing_date or timezone.localdate()).isoformat(),
+                "billable_players": result.billable_players,
+                "created_invoices": result.created_count,
+                "skipped_existing": result.skipped_existing,
+                "invoice_ids": [invoice.id for invoice in result.created_invoices],
+            },
+            status=status.HTTP_200_OK,
+        )

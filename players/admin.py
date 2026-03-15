@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from .models import Player, Membership, Subscription
+from .models import Player, Membership, RegistrationRequest, Subscription
 
 class PlayerAdminForm(forms.ModelForm):
     class Meta:
@@ -30,3 +30,11 @@ class PlayerAdmin(admin.ModelAdmin):
 admin.site.register(Player, PlayerAdmin)
 admin.site.register(Membership)
 admin.site.register(Subscription)
+
+
+@admin.register(RegistrationRequest)
+class RegistrationRequestAdmin(admin.ModelAdmin):
+    list_display = ("phone_number", "first_name", "last_name", "status", "created_at", "approved_at")
+    search_fields = ("phone_number", "first_name", "last_name")
+    list_filter = ("status",)
+    readonly_fields = ("created_at", "updated_at", "approved_at", "approved_by")

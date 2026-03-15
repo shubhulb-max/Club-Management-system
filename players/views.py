@@ -1,17 +1,22 @@
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from django.db.models import Q
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_spectacular.utils import extend_schema
 from django.db import transaction
-from .models import Player
+from .models import Player, RegistrationRequest
 from .serializers import PlayerSerializer
-from .auth_serializers import RegisterSerializer, CustomTokenObtainPairSerializer
+from .auth_serializers import (
+    ApproveRegistrationSerializer,
+    CustomTokenObtainPairSerializer,
+    RegisterSerializer,
+    RegistrationRequestSerializer,
+)
 from teams.models import Team
 from teams.serializers import TeamSerializer
 from matches.models import Match
@@ -41,78 +46,113 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
 
         phone = serializer.validated_data['phone_number']
-        password = serializer.validated_data['password']
-        first_name = serializer.validated_data.get('first_name')
-        last_name = serializer.validated_data.get('last_name')
 
-        with transaction.atomic():
-            # 1️⃣ Prevent duplicate users
-            if User.objects.filter(phone_number=phone).exists():
-                return Response(
-                    {"error": "Account with this phone number already exists."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # 2️⃣ Look for existing Player (admin-created)
-            player = Player.objects.filter(phone_number=phone).select_for_update().first()
-
-            # 3️⃣ Create user
-            user = User.objects.create_user(
-                phone_number=phone,
-                password=password,
-                first_name=first_name or (player.first_name if player else ""),
-                last_name=last_name or (player.last_name if player else ""),
+        if User.objects.filter(phone_number=phone).exists():
+            return Response(
+                {"error": "Account with this phone number already exists."},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-            # 4️⃣ Link or create Player
-            if player:
-                if player.user:
-                    raise ValueError("Player already linked to a user.")
-                player.user = user
-                if first_name:
-                    player.first_name = first_name
-                if last_name:
-                    player.last_name = last_name
-                player.save(update_fields=['user', 'first_name', 'last_name'])
-                if first_name:
-                    user.first_name = first_name
-                if last_name:
-                    user.last_name = last_name
-                user.save(update_fields=['first_name', 'last_name'])
-            else:
-                Player.objects.create(
-                    user=user,
-                    first_name=first_name,
-                    last_name=last_name,
-                    phone_number=phone,
-                    age=0,
-                    role='all_rounder'
-                )
-
-            refresh = RefreshToken.for_user(user)
-            player_for_token = getattr(user, "player", None)
-            refresh["role"] = "player"
-            refresh["first_name"] = user.first_name or ""
-            refresh["last_name"] = user.last_name or ""
-            refresh["player_id"] = player_for_token.id if player_for_token else None
-            refresh["player_role"] = player_for_token.role if player_for_token else None
+        registration = serializer.save()
 
         return Response({
-            "message": "Registration successful",
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user_id": user.id,
-            "player_id": user.player.id,
-            "role": "player",
-            "first_name": user.first_name or "",
-            "last_name": user.last_name or "",
-            "player_role": user.player.role if hasattr(user, "player") else None,
-            "dashboard_url": "/api/auth/dashboard/"
+            "message": "Registration submitted for admin approval.",
+            "status": "pending_approval",
+            "registration_id": registration.id,
+            "phone_number": registration.phone_number,
         }, status=status.HTTP_201_CREATED)
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class RegistrationRequestListView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        registrations = RegistrationRequest.objects.filter(status=RegistrationRequest.STATUS_PENDING)
+        serializer = RegistrationRequestSerializer(registrations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ApproveRegistrationView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(request=ApproveRegistrationSerializer, responses={200: None})
+    def post(self, request, registration_id):
+        serializer = ApproveRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            registration = get_object_or_404(
+                RegistrationRequest.objects.select_for_update(),
+                id=registration_id,
+            )
+
+            if registration.status == RegistrationRequest.STATUS_APPROVED:
+                return Response(
+                    {"error": "Registration request is already approved."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if User.objects.filter(phone_number=registration.phone_number).exists():
+                return Response(
+                    {"error": "Account with this phone number already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            player = Player.objects.filter(phone_number=registration.phone_number).select_for_update().first()
+            role = serializer.validated_data["role"]
+            age = serializer.validated_data["age"]
+
+            user = User.objects.create_user(
+                phone_number=registration.phone_number,
+                password=None,
+                first_name=registration.first_name,
+                last_name=registration.last_name,
+            )
+            user.password = registration.password_hash
+            user.save(update_fields=["password"])
+
+            if player:
+                if player.user_id:
+                    return Response(
+                        {"error": "Player is already linked to a user."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                player.user = user
+                player.first_name = registration.first_name
+                player.last_name = registration.last_name
+                if not player.role:
+                    player.role = role
+                if not player.age:
+                    player.age = age
+                player.save(update_fields=["user", "first_name", "last_name", "role", "age"])
+            else:
+                player = Player.objects.create(
+                    user=user,
+                    first_name=registration.first_name,
+                    last_name=registration.last_name,
+                    phone_number=registration.phone_number,
+                    age=age,
+                    role=role,
+                )
+
+            registration.status = RegistrationRequest.STATUS_APPROVED
+            registration.approved_at = timezone.now()
+            registration.approved_by = request.user
+            registration.save(update_fields=["status", "approved_at", "approved_by", "updated_at"])
+
+        return Response(
+            {
+                "message": "Registration approved successfully.",
+                "status": registration.status,
+                "user_id": user.id,
+                "player_id": player.id,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 class PlayerDashboardView(APIView):
     permission_classes = [IsAuthenticated]

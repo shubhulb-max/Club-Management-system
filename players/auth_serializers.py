@@ -1,10 +1,12 @@
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Player
+from .models import Player, RegistrationRequest
 
 class RegisterSerializer(serializers.Serializer):
     phone_validator = RegexValidator(
@@ -20,6 +22,22 @@ class RegisterSerializer(serializers.Serializer):
         validate_password(value)
         return value
 
+    def save(self):
+        phone_number = self.validated_data["phone_number"]
+        defaults = {
+            "first_name": self.validated_data["first_name"],
+            "last_name": self.validated_data["last_name"],
+            "password_hash": make_password(self.validated_data["password"]),
+            "status": RegistrationRequest.STATUS_PENDING,
+            "approved_at": None,
+            "approved_by": None,
+        }
+        registration, _ = RegistrationRequest.objects.update_or_create(
+            phone_number=phone_number,
+            defaults=defaults,
+        )
+        return registration
+
 class LoginSerializer(serializers.Serializer):
     phone_validator = RegexValidator(
         regex=r"^\d{10,15}$",
@@ -27,6 +45,33 @@ class LoginSerializer(serializers.Serializer):
     )
     phone_number = serializers.CharField(max_length=15, required=True, validators=[phone_validator])
     password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
+
+
+class RegistrationRequestSerializer(serializers.ModelSerializer):
+    approved_by_phone_number = serializers.CharField(source="approved_by.phone_number", read_only=True)
+
+    class Meta:
+        model = RegistrationRequest
+        fields = [
+            "id",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "status",
+            "created_at",
+            "updated_at",
+            "approved_at",
+            "approved_by_phone_number",
+        ]
+
+
+class ApproveRegistrationSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(
+        choices=Player.ROLE_CHOICES,
+        required=False,
+        default="all_rounder",
+    )
+    age = serializers.IntegerField(required=False, min_value=0, default=0)
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -75,6 +120,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        phone_number = attrs.get(self.username_field)
+        pending_request = RegistrationRequest.objects.filter(phone_number=phone_number).first()
+        if pending_request and pending_request.status == RegistrationRequest.STATUS_PENDING:
+            raise AuthenticationFailed("Registration is pending admin approval.")
+        if pending_request and pending_request.status == RegistrationRequest.STATUS_REJECTED:
+            raise AuthenticationFailed("Registration request was rejected.")
+
         data = super().validate(attrs)
         user = self.user
         player = getattr(user, "player", None)
