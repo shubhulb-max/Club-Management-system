@@ -182,7 +182,7 @@ class PlayerDashboardView(APIView):
             .first()
         )
 
-        recent_media = Media.objects.all().order_by("-uploaded_at")[:10]
+        recent_media = Media.objects.filter(is_approved=True).order_by("-uploaded_at")[:10]
 
         profile_picture_url = None
         if player.profile_picture:

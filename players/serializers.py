@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
+from cricket_club.upload_validators import validate_uploaded_image
 from .models import Player, Membership
 from teams.models import Team
 from tournaments.models import TournamentParticipation
@@ -47,6 +48,9 @@ class PlayerSerializer(serializers.ModelSerializer):
         if password and User.objects.filter(phone_number=phone_number).exists():
             raise serializers.ValidationError({"phone_number": "Account with this phone number already exists."})
         return attrs
+
+    def validate_profile_picture(self, value):
+        return validate_uploaded_image(value)
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)

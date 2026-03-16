@@ -25,7 +25,7 @@ class KPIsView(APIView):
         total_teams = Team.objects.count()
         total_grounds = Ground.objects.count()
         total_inventory_items = InventoryItem.objects.count()
-        total_media = Media.objects.count()
+        total_media = Media.objects.filter(is_approved=True).count()
 
         total_tournaments = Tournament.objects.count()
         upcoming_tournaments = Tournament.objects.filter(start_date__gte=today).count()

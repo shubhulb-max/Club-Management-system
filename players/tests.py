@@ -1,7 +1,10 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from rest_framework import status
+from PIL import Image
+from io import BytesIO
 from .models import Player, RegistrationRequest, Subscription
 from financials.models import Transaction
 from datetime import date, timedelta
@@ -188,3 +191,57 @@ class AuthTests(TestCase):
         }
         response = self.client.post(self.login_url, data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PlayerImageUploadValidationTests(TestCase):
+    def _build_test_image(self, name="profile.png", image_format="PNG"):
+        buffer = BytesIO()
+        image = Image.new("RGB", (20, 20), color="red")
+        image.save(buffer, format=image_format)
+        buffer.seek(0)
+        return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+    def test_rejects_fake_profile_picture(self):
+        client = APIClient()
+        user = get_user_model().objects.create_user(phone_number="8888888888", password="password123")
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/players/",
+            {
+                "first_name": "Fake",
+                "last_name": "Image",
+                "age": 23,
+                "role": "bowler",
+                "phone_number": "1111111111",
+                "profile_picture": SimpleUploadedFile(
+                    "fake.png",
+                    b"not an actual image",
+                    content_type="image/png",
+                ),
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("profile_picture", response.data)
+
+    def test_accepts_valid_profile_picture(self):
+        client = APIClient()
+        user = get_user_model().objects.create_user(phone_number="8877777777", password="password123")
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/players/",
+            {
+                "first_name": "Valid",
+                "last_name": "Image",
+                "age": 24,
+                "role": "batsman",
+                "phone_number": "2222222222",
+                "profile_picture": self._build_test_image(),
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

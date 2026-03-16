@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from cricket_club.upload_validators import validate_uploaded_image
 from players.serializers import PlayerSerializer
 from .models import Team, Player  # Ensure Player is imported or available via apps.get_model
 
@@ -19,3 +20,6 @@ class TeamSerializer(serializers.ModelSerializer):
         model = Team
         # Add 'player_ids' to the fields list
         fields = ['id', 'name', 'captain', 'logo', 'players', 'player_ids']
+
+    def validate_logo(self, value):
+        return validate_uploaded_image(value)

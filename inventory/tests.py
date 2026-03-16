@@ -1,5 +1,9 @@
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from io import BytesIO
+from PIL import Image
 from .models import InventoryItem, Sale, ItemAssignment
+from .serializers import InventoryCategorySerializer
 from players.models import Player
 from teams.models import Team
 from financials.models import Transaction
@@ -62,3 +66,33 @@ class ItemAssignmentModelTest(TestCase):
             date_assigned=date.today()
         )
         self.assertEqual(str(assignment), '5 x Team Helmet assigned to Test Team')
+
+
+class InventoryCategoryImageValidationTest(TestCase):
+    def _build_test_image(self):
+        buffer = BytesIO()
+        image = Image.new("RGB", (20, 20), color="green")
+        image.save(buffer, format="PNG")
+        buffer.seek(0)
+        return SimpleUploadedFile("category.png", buffer.getvalue(), content_type="image/png")
+
+    def test_rejects_fake_category_image(self):
+        serializer = InventoryCategorySerializer(
+            data={
+                "name": "Bats",
+                "description": "Category",
+                "image": SimpleUploadedFile("category.png", b"bad image data", content_type="image/png"),
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("image", serializer.errors)
+
+    def test_accepts_valid_category_image(self):
+        serializer = InventoryCategorySerializer(
+            data={
+                "name": "Pads",
+                "description": "Category",
+                "image": self._build_test_image(),
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
