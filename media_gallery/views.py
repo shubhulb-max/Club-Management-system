@@ -8,10 +8,11 @@ from .serializers import MediaSerializer
 
 
 class MediaViewSet(viewsets.ModelViewSet):
+    queryset = Media.objects.all()
     serializer_class = MediaSerializer
 
     def get_queryset(self):
-        queryset = Media.objects.all().order_by("-uploaded_at")
+        queryset = self.queryset.order_by("-uploaded_at")
         user = getattr(self.request, "user", None)
         if user and user.is_authenticated and user.is_staff:
             return queryset
