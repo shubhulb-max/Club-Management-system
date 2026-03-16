@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.core.management import call_command
 from players.models import Player
 from financials.models import Transaction
+from financials.services import MONTHLY_INVOICE_AMOUNT
 from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -36,6 +37,8 @@ class GenerateMonthlyFeesTest(TestCase):
             Transaction.objects.filter(
                 player=self.active_player,
                 category='monthly',
+                amount=MONTHLY_INVOICE_AMOUNT,
+                due_date=date.today().replace(day=10),
                 paid=False
             ).exists()
         )
@@ -148,11 +151,14 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
         self.assertEqual(response.data['created_invoices'], 1)
         self.assertEqual(response.data['skipped_existing'], 0)
         self.assertEqual(response.data['billing_date'], '2026-03-01')
+        self.assertEqual(response.data['due_date'], '2026-03-10')
+        self.assertEqual(response.data['amount'], '1050.00')
         self.assertTrue(
             Transaction.objects.filter(
                 player=self.active_player,
                 category='monthly',
-                due_date=date(2026, 3, 1),
+                amount=MONTHLY_INVOICE_AMOUNT,
+                due_date=date(2026, 3, 10),
                 paid=False,
             ).exists()
         )
@@ -167,11 +173,14 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
         self.assertEqual(second_response.data['created_invoices'], 0)
         self.assertEqual(second_response.data['skipped_existing'], 1)
+        self.assertEqual(second_response.data['due_date'], '2026-03-10')
+        self.assertEqual(second_response.data['amount'], '1050.00')
         self.assertEqual(
             Transaction.objects.filter(
                 player=self.active_player,
                 category='monthly',
-                due_date=date(2026, 3, 1),
+                amount=MONTHLY_INVOICE_AMOUNT,
+                due_date=date(2026, 3, 10),
             ).count(),
             1,
         )

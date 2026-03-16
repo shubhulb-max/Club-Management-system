@@ -20,7 +20,7 @@ from .serializers import (
     GenerateMonthlyInvoicesSerializer,
 )
 from .phonepe_utils import initiate_phonepe_payment, check_payment_status
-from .services import generate_monthly_invoices
+from .services import MONTHLY_INVOICE_AMOUNT, generate_monthly_invoices
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -166,6 +166,8 @@ class GenerateMonthlyInvoicesView(APIView):
             {
                 "message": "Monthly invoices generated successfully.",
                 "billing_date": (billing_date or timezone.localdate()).isoformat(),
+                "due_date": result.due_date.isoformat(),
+                "amount": str(result.created_invoices[0].amount) if result.created_invoices else str(MONTHLY_INVOICE_AMOUNT),
                 "billable_players": result.billable_players,
                 "created_invoices": result.created_count,
                 "skipped_existing": result.skipped_existing,

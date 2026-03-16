@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from typing import Iterable, List, Optional
 
 from django.db import transaction
@@ -9,12 +10,15 @@ from players.models import Player
 
 from .models import Transaction
 
+MONTHLY_INVOICE_AMOUNT = Decimal("1050.00")
+
 
 @dataclass
 class BillingResult:
     created_invoices: List[Transaction]
     billable_players: int
     skipped_existing: int
+    due_date: date
 
     @property
     def created_count(self) -> int:
@@ -36,6 +40,10 @@ def _invoice_exists(player: Player, billing_date: date) -> bool:
     ).exists()
 
 
+def _monthly_due_date(billing_date: date) -> date:
+    return billing_date.replace(day=10)
+
+
 @transaction.atomic
 def generate_monthly_invoices(
     *,
@@ -43,6 +51,7 @@ def generate_monthly_invoices(
     players: Optional[Iterable[Player]] = None,
 ) -> BillingResult:
     billing_date = billing_date or timezone.localdate()
+    due_date = _monthly_due_date(billing_date)
     created_invoices: List[Transaction] = []
     billable_players = 0
     skipped_existing = 0
@@ -61,8 +70,8 @@ def generate_monthly_invoices(
         invoice = Transaction.objects.create(
             player=player,
             category="monthly",
-            amount=subscription.monthly_rate,
-            due_date=billing_date,
+            amount=MONTHLY_INVOICE_AMOUNT,
+            due_date=due_date,
             paid=False,
         )
         created_invoices.append(invoice)
@@ -71,4 +80,5 @@ def generate_monthly_invoices(
         created_invoices=created_invoices,
         billable_players=billable_players,
         skipped_existing=skipped_existing,
+        due_date=due_date,
     )
