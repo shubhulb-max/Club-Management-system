@@ -25,6 +25,15 @@ def _normalize_allowed_hosts(hosts):
     return normalized_hosts
 
 
+def _merge_unique(*values):
+    merged = []
+    for items in values:
+        for item in items:
+            if item not in merged:
+                merged.append(item)
+    return merged
+
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -48,10 +57,21 @@ SECRET_KEY = os.getenv(
 
 DEBUG = _get_bool_env("DJANGO_DEBUG", "true")
 
+DEFAULT_ALLOWED_HOSTS = [
+    "72.61.243.80",
+    "localhost",
+    "127.0.0.1",
+    "kk11.in",
+    "www.kk11.in",
+    "api.kk11.in",
+]
+
 ALLOWED_HOSTS = _normalize_allowed_hosts(
-    _get_csv_env(
-        "DJANGO_ALLOWED_HOSTS",
-        "72.61.243.80,localhost,127.0.0.1,kk11.in,www.kk11.in,api.kk11.in",
+    _merge_unique(
+        DEFAULT_ALLOWED_HOSTS,
+        _get_csv_env(
+            "DJANGO_ALLOWED_HOSTS",
+        ),
     )
 )
 
@@ -178,15 +198,36 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # CORS settings
+DEFAULT_CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://kk11.in",
+    "https://www.kk11.in",
+    "https://api.kk11.in",
+]
+
+DEFAULT_CSRF_TRUSTED_ORIGINS = [
+    "http://72.61.243.80",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://kk11.in",
+    "https://www.kk11.in",
+    "https://api.kk11.in",
+]
+
 CORS_ALLOW_ALL_ORIGINS = _get_bool_env("DJANGO_CORS_ALLOW_ALL_ORIGINS", "false")
-CORS_ALLOWED_ORIGINS = _get_csv_env(
-    "DJANGO_CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000,https://kk11.in,https://www.kk11.in,https://api.kk11.in",
+CORS_ALLOWED_ORIGINS = _merge_unique(
+    DEFAULT_CORS_ALLOWED_ORIGINS,
+    _get_csv_env(
+        "DJANGO_CORS_ALLOWED_ORIGINS",
+    ),
 )
 
-CSRF_TRUSTED_ORIGINS = _get_csv_env(
-    "DJANGO_CSRF_TRUSTED_ORIGINS",
-    "http://72.61.243.80,http://localhost:3000,http://127.0.0.1:3000,https://kk11.in,https://www.kk11.in,https://api.kk11.in",
+CSRF_TRUSTED_ORIGINS = _merge_unique(
+    DEFAULT_CSRF_TRUSTED_ORIGINS,
+    _get_csv_env(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+    ),
 )
 # DRF settings
 REST_FRAMEWORK = {

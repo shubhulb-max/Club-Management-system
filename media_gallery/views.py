@@ -26,7 +26,12 @@ class MediaViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        serializer.save(is_approved=False, approved_at=None, approved_by=None)
+        serializer.save(
+            uploaded_by=self.request.user,
+            is_approved=False,
+            approved_at=None,
+            approved_by=None,
+        )
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):

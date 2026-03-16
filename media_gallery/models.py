@@ -12,6 +12,13 @@ class Media(models.Model):
     title = models.CharField(max_length=100, blank=True)
     file = models.FileField(upload_to="media_uploads/")
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_media_items",
+    )
     is_approved = models.BooleanField(default=False)
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(

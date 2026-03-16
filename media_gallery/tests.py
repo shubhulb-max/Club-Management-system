@@ -39,6 +39,8 @@ class MediaApprovalTests(TestCase):
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
         media = Media.objects.get(id=create_response.data["id"])
         self.assertFalse(media.is_approved)
+        self.assertEqual(media.uploaded_by, user)
+        self.assertEqual(create_response.data["uploaded_by"], user.id)
 
         self.client.force_authenticate(user=None)
         list_response = self.client.get("/api/media/")
@@ -69,9 +71,30 @@ class MediaApprovalTests(TestCase):
         media.refresh_from_db()
         self.assertTrue(media.is_approved)
         self.assertEqual(media.approved_by, admin)
+        self.assertIsNone(media.uploaded_by)
 
         self.client.force_authenticate(user=None)
         list_response = self.client.get("/api/media/")
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(list_response.data), 1)
         self.assertEqual(list_response.data[0]["id"], media.id)
+
+    def test_serializer_returns_uploader_name(self):
+        user = self.user_model.objects.create_user(
+            phone_number="9000000004",
+            password="password123",
+            first_name="Shubham",
+            last_name="Singh",
+        )
+        media = Media.objects.create(
+            title="Named Upload",
+            media_type="photo",
+            file=self._build_test_image("named.png"),
+            uploaded_by=user,
+            is_approved=True,
+        )
+
+        response = self.client.get(f"/api/media/{media.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["uploaded_by"], user.id)
+        self.assertEqual(response.data["uploaded_by_name"], "Shubham Singh")
