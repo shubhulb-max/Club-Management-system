@@ -1,8 +1,28 @@
 from pathlib import Path
 import os
+from urllib.parse import urlparse
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _get_bool_env(name, default="false"):
+    return os.getenv(name, default).strip().lower() == "true"
+
+
+def _get_csv_env(name, default=""):
+    value = os.getenv(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _normalize_allowed_hosts(hosts):
+    normalized_hosts = []
+    for host in hosts:
+        parsed = urlparse(host if "://" in host else f"//{host}")
+        normalized_hosts.append(parsed.netloc or parsed.path)
+    return normalized_hosts
 
 
 MEDIA_URL = '/media/'
@@ -26,9 +46,14 @@ SECRET_KEY = os.getenv(
     "django-insecure-2*6kx2b(j3_5-m^!*0lwy086!g+nw378qz$sxbpuymj*zi6hd2",
 )
 
-DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+DEBUG = _get_bool_env("DJANGO_DEBUG", "true")
 
-ALLOWED_HOSTS = ["72.61.243.80", "localhost", "127.0.0.1","kk11.in","api.kk11.in"]
+ALLOWED_HOSTS = _normalize_allowed_hosts(
+    _get_csv_env(
+        "DJANGO_ALLOWED_HOSTS",
+        "72.61.243.80,localhost,127.0.0.1,kk11.in,www.kk11.in,api.kk11.in",
+    )
+)
 
 # Application definition
 
@@ -91,21 +116,28 @@ WSGI_APPLICATION = "cricket_club.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "club_management",
-        "USER": "club_user",
-        "PASSWORD": "club_password",
-        "HOST": "db",
-        "PORT": "3306",
-        "CONN_MAX_AGE": 60,
-        "OPTIONS": {
-            "connect_timeout": 10,
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+database_url = os.getenv("DATABASE_URL")
+
+if database_url:
+    DATABASES = {
+        "default": dj_database_url.parse(database_url, conn_max_age=60),
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
+            "NAME": os.getenv("DB_NAME", "club_management"),
+            "USER": os.getenv("DB_USER", "club_user"),
+            "PASSWORD": os.getenv("DB_PASSWORD", "club_password"),
+            "HOST": os.getenv("DB_HOST", "db"),
+            "PORT": os.getenv("DB_PORT", "3306"),
+            "CONN_MAX_AGE": 60,
+            "OPTIONS": {
+                "connect_timeout": 10,
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
 
 
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -146,15 +178,16 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # CORS settings
-cors_allow_all_origins = os.getenv("DJANGO_CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true"
-CORS_ALLOW_ALL_ORIGINS = cors_allow_all_origins
+CORS_ALLOW_ALL_ORIGINS = _get_bool_env("DJANGO_CORS_ALLOW_ALL_ORIGINS", "false")
+CORS_ALLOWED_ORIGINS = _get_csv_env(
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,https://kk11.in,https://www.kk11.in,https://api.kk11.in",
+)
 
-cors_allowed_origins = os.getenv("DJANGO_CORS_ALLOWED_ORIGINS", "")
-CORS_ALLOWED_ORIGINS = [
-    origin for origin in cors_allowed_origins.split(",") if origin
-] or ["http://localhost:3000", "http://club-management-system-006z.onrender.com","https://kk11.in"]
-
-CSRF_TRUSTED_ORIGINS = ["http://72.61.243.80", "http://localhost:3000", "https://api.kk11.in"]
+CSRF_TRUSTED_ORIGINS = _get_csv_env(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    "http://72.61.243.80,http://localhost:3000,http://127.0.0.1:3000,https://kk11.in,https://www.kk11.in,https://api.kk11.in",
+)
 # DRF settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
