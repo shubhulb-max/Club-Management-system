@@ -35,7 +35,7 @@ services:
 
     environment:
       DJANGO_DEBUG: "true"
-      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,kk11.in,www.kk11.in,api.kk11.in"
       DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
 
       DB_ENGINE: "django.db.backends.mysql"
