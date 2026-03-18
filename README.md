@@ -104,16 +104,22 @@ All API endpoints are prefixed with `/api/`.
   "external_opponent": null,
   "ground": 1,
   "date": "2023-10-27T10:00:00Z",
+  "match_type": "friendly",
+  "tournament": null,
   "match_format": "t20",
   "overs_per_side": 20,
   "ball_type": "tennis",
   "team_dress": "Blue Jersey",
   "reporting_time": "09:00:00",
-  "team1_score": "178-6 (20)",
-  "team2_score": "158 (19.2)"
+  "team1_runs": 178,
+  "team1_wickets": 6,
+  "team1_overs": "20.0",
+  "team2_runs": 158,
+  "team2_wickets": 10,
+  "team2_overs": "19.2"
 }
 ```
-*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, `team_dress`, and `reporting_time` are required when creating a match. When recording scores, send smart score strings like `175-6 (20)` or `107 (15.3)`. The API parses them, stores runs/wickets/overs, and derives `result`, `winner`, and `result_summary` automatically. Manual `result` and `winner` input is ignored.*
+*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, and `team_dress` are required when creating a match. `reporting_time` is optional. Normal matches default to `friendly`. Use `match_type: "tournament"` with a valid `tournament` id for tournament matches. When recording scores, send separate `runs`, `wickets`, and `overs` fields for both teams. The API derives `result`, `winner`, and `result_summary` automatically. Manual `result` and `winner` input is ignored.*
 
 **Response Payload:**
 ```json
@@ -124,6 +130,8 @@ All API endpoints are prefixed with `/api/`.
   "external_opponent": null,
   "ground": 1,
   "date": "2023-10-27T10:00:00Z",
+  "match_type": "friendly",
+  "tournament": null,
   "match_format": "t20",
   "overs_per_side": 20,
   "ball_type": "tennis",

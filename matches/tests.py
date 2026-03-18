@@ -5,6 +5,7 @@ from .serializers import MatchSerializer
 from teams.models import Team
 from players.models import Player
 from grounds.models import Ground
+from tournaments.models import Tournament
 import datetime
 
 class MatchSerializerTest(TestCase):
@@ -18,6 +19,7 @@ class MatchSerializerTest(TestCase):
             'team1': self.team1.id,
             'ground': self.ground.id,
             'date': self.match_date,
+            'match_type': 'friendly',
             'match_format': 't20',
             'ball_type': 'tennis',
             'team_dress': 'Blue',
@@ -41,6 +43,33 @@ class MatchSerializerTest(TestCase):
         }
         serializer = MatchSerializer(data=data)
         self.assertTrue(serializer.is_valid(raise_exception=True))
+
+    def test_tournament_match_requires_tournament(self):
+        data = {
+            **self.base_data,
+            'match_type': 'tournament',
+            'external_opponent': "External Team",
+        }
+        serializer = MatchSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_tournament_field_sets_match_type(self):
+        tournament = Tournament.objects.create(
+            name="Summer Cup",
+            start_date=self.match_date.date(),
+            entry_fee="1000.00",
+        )
+        data = {
+            **self.base_data,
+            'external_opponent': "External Team",
+            'match_type': 'friendly',
+            'tournament': tournament.id,
+        }
+        serializer = MatchSerializer(data=data)
+        self.assertTrue(serializer.is_valid(raise_exception=True))
+        self.assertEqual(serializer.validated_data['match_type'], 'tournament')
+        self.assertEqual(serializer.validated_data['tournament'], tournament)
 
     def test_invalid_match_with_both_opponents(self):
         captain2 = Player.objects.create(first_name="Captain", last_name="Three", age=32, role="bowler")
@@ -80,14 +109,18 @@ class MatchSerializerTest(TestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_score_strings_are_parsed_and_result_is_derived(self):
+    def test_separate_score_fields_derive_result(self):
         captain2 = Player.objects.create(first_name="Captain", last_name="Five", age=28, role="bowler")
         team2 = Team.objects.create(name="Team Five", captain=captain2)
         data = {
             **self.base_data,
             'team2': team2.id,
-            'team1_score': '175-6 (20)',
-            'team2_score': '107 (15.3)',
+            'team1_runs': 175,
+            'team1_wickets': 6,
+            'team1_overs': '20.0',
+            'team2_runs': 107,
+            'team2_wickets': 10,
+            'team2_overs': '15.3',
         }
         serializer = MatchSerializer(data=data)
         self.assertTrue(serializer.is_valid(raise_exception=True))
@@ -106,8 +139,12 @@ class MatchSerializerTest(TestCase):
         data = {
             **self.base_data,
             'team2': team2.id,
-            'team1_score': '175-6 (20)',
-            'team2_score': '107 (15.3)',
+            'team1_runs': 175,
+            'team1_wickets': 6,
+            'team1_overs': '20.0',
+            'team2_runs': 107,
+            'team2_wickets': 10,
+            'team2_overs': '15.3',
             'result': 'loss',
             'winner': team2.id,
         }

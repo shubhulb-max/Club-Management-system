@@ -4,10 +4,10 @@ from .models import Match
 class MatchAdmin(admin.ModelAdmin):
     list_display = (
         'team1', 'team2', 'external_opponent', 'ground', 'date',
-        'match_format', 'ball_type', 'reporting_time', 'result', 'result_summary'
+        'match_type', 'tournament', 'match_format', 'ball_type', 'reporting_time', 'result', 'result_summary'
     )
     search_fields = ('team1__name', 'team2__name', 'external_opponent', 'ground__name')
-    list_filter = ('date', 'result', 'ground', 'ball_type', 'match_format')
+    list_filter = ('date', 'match_type', 'tournament', 'result', 'ground', 'ball_type', 'match_format')
 
     @admin.display(description='Result Summary')
     def result_summary(self, obj):

@@ -1,22 +1,17 @@
-import re
-from decimal import Decimal, InvalidOperation
-
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from .models import Match, Lineup, LineupEntry
 
 class MatchSerializer(serializers.ModelSerializer):
-    team1_score = serializers.CharField(write_only=True, required=False)
-    team2_score = serializers.CharField(write_only=True, required=False)
     result_summary = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Match
         fields = [
             'id', 'team1', 'team2', 'external_opponent', 'ground', 'date',
+            'match_type', 'tournament',
             'match_format', 'overs_per_side', 'ball_type', 'team_dress', 'reporting_time',
-            'team1_score', 'team2_score',
             'team1_runs', 'team1_wickets', 'team1_overs', 'team2_runs', 'team2_wickets', 'team2_overs',
             'result', 'winner', 'result_summary'
         ]
@@ -36,9 +31,12 @@ class MatchSerializer(serializers.ModelSerializer):
             data.get('external_opponent')
             if 'external_opponent' in data else getattr(instance, 'external_opponent', None)
         )
+        tournament = data.get('tournament') if 'tournament' in data else getattr(instance, 'tournament', None)
+        match_type = data.get('match_type') if 'match_type' in data else getattr(instance, 'match_type', 'friendly')
+        if not match_type:
+            match_type = 'friendly'
+            data['match_type'] = match_type
         match_format = data.get('match_format') if 'match_format' in data else getattr(instance, 'match_format', None)
-        self._apply_score_input(data, 'team1')
-        self._apply_score_input(data, 'team2')
         team1_runs = data.get('team1_runs') if 'team1_runs' in data else getattr(instance, 'team1_runs', None)
         team1_wickets = data.get('team1_wickets') if 'team1_wickets' in data else getattr(instance, 'team1_wickets', None)
         team2_runs = data.get('team2_runs') if 'team2_runs' in data else getattr(instance, 'team2_runs', None)
@@ -55,8 +53,15 @@ class MatchSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A match can have a second internal team or an external opponent, but not both.")
         if not team2 and not external_opponent:
             raise serializers.ValidationError("A match must have either a second internal team or an external opponent.")
+        if tournament and match_type != 'tournament':
+            data['match_type'] = 'tournament'
+            match_type = 'tournament'
+        if match_type == 'tournament' and tournament is None:
+            raise serializers.ValidationError({'tournament': "Tournament is required when match_type is tournament."})
+        if match_type == 'friendly' and tournament is not None:
+            raise serializers.ValidationError({'tournament': "Friendly matches cannot be linked to a tournament."})
         if self.instance is None:
-            missing = [field for field in ('match_format', 'ball_type', 'team_dress', 'reporting_time') if not data.get(field)]
+            missing = [field for field in ('match_format', 'ball_type', 'team_dress') if not data.get(field)]
             if missing:
                 raise serializers.ValidationError({field: "This field is required." for field in missing})
 
@@ -68,8 +73,11 @@ class MatchSerializer(serializers.ModelSerializer):
         if team2_wickets is not None and team2_wickets > 10:
             raise serializers.ValidationError({'team2_wickets': "Wickets cannot be more than 10."})
 
-        score_fields = ('team1_runs', 'team1_overs', 'team2_runs', 'team2_overs')
-        score_values = [team1_runs, team1_overs, team2_runs, team2_overs]
+        score_fields = (
+            'team1_runs', 'team1_wickets', 'team1_overs',
+            'team2_runs', 'team2_wickets', 'team2_overs'
+        )
+        score_values = [team1_runs, team1_wickets, team1_overs, team2_runs, team2_wickets, team2_overs]
         has_partial_scores = any(value is not None for value in score_values) and any(value is None for value in score_values)
         if has_partial_scores:
             raise serializers.ValidationError({field: "All score and overs fields are required together." for field in score_fields})
@@ -114,20 +122,6 @@ class MatchSerializer(serializers.ModelSerializer):
         if not balls.isdigit() or len(balls) != 1 or int(balls) > 5:
             raise serializers.ValidationError({field_name: "Overs must use cricket notation, for example 17.2 or 20.0."})
 
-    def _apply_score_input(self, data, prefix):
-        score_key = f'{prefix}_score'
-        score_value = data.pop(score_key, None)
-        if not score_value:
-            return
-
-        parsed = self._parse_score(score_key, score_value)
-        for suffix, value in parsed.items():
-            field_name = f'{prefix}_{suffix}'
-            existing_value = data.get(field_name)
-            if existing_value is not None and str(existing_value) != str(value):
-                raise serializers.ValidationError({score_key: f"{score_key} conflicts with {field_name}."})
-            data[field_name] = value
-
     def _derive_result_from_scores(self, data, team1, team2, team1_runs, team2_runs):
         if team1_runs is None or team2_runs is None or team1 is None:
             return
@@ -143,27 +137,6 @@ class MatchSerializer(serializers.ModelSerializer):
         else:
             data['result'] = 'draw'
             data['winner'] = None
-
-    def _parse_score(self, field_name, value):
-        match = re.match(r'^\s*(\d+)(?:\s*-\s*(\d+))?\s*\(\s*(\d+(?:\.\d)?)\s*\)\s*$', value)
-        if not match:
-            raise serializers.ValidationError({
-                field_name: "Use score format like 175-6 (20) or 107 (15.3)."
-            })
-
-        runs = int(match.group(1))
-        wickets = int(match.group(2)) if match.group(2) is not None else 10
-        overs_text = match.group(3)
-        try:
-            overs = Decimal(overs_text if '.' in overs_text else f'{overs_text}.0')
-        except InvalidOperation as exc:
-            raise serializers.ValidationError({field_name: "Invalid overs value."}) from exc
-
-        return {
-            'runs': runs,
-            'wickets': wickets,
-            'overs': overs,
-        }
 
 
 class LineupEntrySerializer(serializers.ModelSerializer):
