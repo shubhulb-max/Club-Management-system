@@ -69,18 +69,52 @@ class MatchSerializerTest(TestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_result_requires_complete_scores(self):
+    def test_partial_scores_are_rejected(self):
         data = {
             **self.base_data,
             'external_opponent': "External Team",
-            'result': 'win',
-            'winner': self.team1.id,
             'team1_runs': 180,
             'team1_overs': '20.0',
         }
         serializer = MatchSerializer(data=data)
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
+
+    def test_score_strings_are_parsed_and_result_is_derived(self):
+        captain2 = Player.objects.create(first_name="Captain", last_name="Five", age=28, role="bowler")
+        team2 = Team.objects.create(name="Team Five", captain=captain2)
+        data = {
+            **self.base_data,
+            'team2': team2.id,
+            'team1_score': '175-6 (20)',
+            'team2_score': '107 (15.3)',
+        }
+        serializer = MatchSerializer(data=data)
+        self.assertTrue(serializer.is_valid(raise_exception=True))
+        self.assertEqual(serializer.validated_data['team1_runs'], 175)
+        self.assertEqual(serializer.validated_data['team1_wickets'], 6)
+        self.assertEqual(str(serializer.validated_data['team1_overs']), '20.0')
+        self.assertEqual(serializer.validated_data['team2_runs'], 107)
+        self.assertEqual(serializer.validated_data['team2_wickets'], 10)
+        self.assertEqual(str(serializer.validated_data['team2_overs']), '15.3')
+        self.assertEqual(serializer.validated_data['result'], 'win')
+        self.assertEqual(serializer.validated_data['winner'], self.team1)
+
+    def test_manual_result_and_winner_are_ignored(self):
+        captain2 = Player.objects.create(first_name="Captain", last_name="Six", age=27, role="batsman")
+        team2 = Team.objects.create(name="Team Six", captain=captain2)
+        data = {
+            **self.base_data,
+            'team2': team2.id,
+            'team1_score': '175-6 (20)',
+            'team2_score': '107 (15.3)',
+            'result': 'loss',
+            'winner': team2.id,
+        }
+        serializer = MatchSerializer(data=data)
+        self.assertTrue(serializer.is_valid(raise_exception=True))
+        self.assertEqual(serializer.validated_data['result'], 'win')
+        self.assertEqual(serializer.validated_data['winner'], self.team1)
 
     def test_result_summary_uses_run_margin(self):
         match = Match.objects.create(
@@ -95,8 +129,10 @@ class MatchSerializerTest(TestCase):
             result='win',
             winner=self.team1,
             team1_runs=180,
+            team1_wickets=6,
             team1_overs='20.0',
             team2_runs=160,
+            team2_wickets=10,
             team2_overs='19.4',
         )
         serializer = MatchSerializer(instance=match)
@@ -117,8 +153,10 @@ class MatchSerializerTest(TestCase):
             result='loss',
             winner=team2,
             team1_runs=150,
+            team1_wickets=10,
             team1_overs='20.0',
             team2_runs=151,
+            team2_wickets=6,
             team2_overs='18.4',
         )
         serializer = MatchSerializer(instance=match)

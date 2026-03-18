@@ -109,15 +109,11 @@ All API endpoints are prefixed with `/api/`.
   "ball_type": "tennis",
   "team_dress": "Blue Jersey",
   "reporting_time": "09:00:00",
-  "team1_runs": 178,
-  "team1_overs": "20.0",
-  "team2_runs": 158,
-  "team2_overs": "19.2",
-  "result": "win",
-  "winner": 1
+  "team1_score": "178-6 (20)",
+  "team2_score": "158 (19.2)"
 }
 ```
-*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, `team_dress`, and `reporting_time` are required when creating a match. When recording a `win` or `loss`, provide both teams' runs and overs so the API can generate a result summary like "won by 20 runs" or "won by 8 balls".*
+*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, `team_dress`, and `reporting_time` are required when creating a match. When recording scores, send smart score strings like `175-6 (20)` or `107 (15.3)`. The API parses them, stores runs/wickets/overs, and derives `result`, `winner`, and `result_summary` automatically. Manual `result` and `winner` input is ignored.*
 
 **Response Payload:**
 ```json
@@ -134,8 +130,10 @@ All API endpoints are prefixed with `/api/`.
   "team_dress": "Blue Jersey",
   "reporting_time": "09:00:00",
   "team1_runs": 178,
+  "team1_wickets": 6,
   "team1_overs": "20.0",
   "team2_runs": 158,
+  "team2_wickets": 10,
   "team2_overs": "19.2",
   "result": "win",
   "winner": 1,

@@ -1,9 +1,14 @@
+import re
+from decimal import Decimal, InvalidOperation
+
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from .models import Match, Lineup, LineupEntry
 
 class MatchSerializer(serializers.ModelSerializer):
+    team1_score = serializers.CharField(write_only=True, required=False)
+    team2_score = serializers.CharField(write_only=True, required=False)
     result_summary = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -11,10 +16,11 @@ class MatchSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'team1', 'team2', 'external_opponent', 'ground', 'date',
             'match_format', 'overs_per_side', 'ball_type', 'team_dress', 'reporting_time',
-            'team1_runs', 'team1_overs', 'team2_runs', 'team2_overs',
+            'team1_score', 'team2_score',
+            'team1_runs', 'team1_wickets', 'team1_overs', 'team2_runs', 'team2_wickets', 'team2_overs',
             'result', 'winner', 'result_summary'
         ]
-        read_only_fields = ['result_summary']
+        read_only_fields = ['result', 'winner', 'result_summary']
 
     def get_result_summary(self, obj):
         return obj.get_result_summary()
@@ -30,13 +36,20 @@ class MatchSerializer(serializers.ModelSerializer):
             data.get('external_opponent')
             if 'external_opponent' in data else getattr(instance, 'external_opponent', None)
         )
-        result = data.get('result') if 'result' in data else getattr(instance, 'result', None)
-        winner = data.get('winner') if 'winner' in data else getattr(instance, 'winner', None)
         match_format = data.get('match_format') if 'match_format' in data else getattr(instance, 'match_format', None)
+        self._apply_score_input(data, 'team1')
+        self._apply_score_input(data, 'team2')
         team1_runs = data.get('team1_runs') if 'team1_runs' in data else getattr(instance, 'team1_runs', None)
+        team1_wickets = data.get('team1_wickets') if 'team1_wickets' in data else getattr(instance, 'team1_wickets', None)
         team2_runs = data.get('team2_runs') if 'team2_runs' in data else getattr(instance, 'team2_runs', None)
+        team2_wickets = data.get('team2_wickets') if 'team2_wickets' in data else getattr(instance, 'team2_wickets', None)
         team1_overs = data.get('team1_overs') if 'team1_overs' in data else getattr(instance, 'team1_overs', None)
         team2_overs = data.get('team2_overs') if 'team2_overs' in data else getattr(instance, 'team2_overs', None)
+        self._derive_result_from_scores(data, team1, team2, team1_runs, team2_runs)
+        team1_runs = data.get('team1_runs') if 'team1_runs' in data else getattr(instance, 'team1_runs', None)
+        team2_runs = data.get('team2_runs') if 'team2_runs' in data else getattr(instance, 'team2_runs', None)
+        result = data.get('result') if 'result' in data else getattr(instance, 'result', None)
+        winner = data.get('winner') if 'winner' in data else getattr(instance, 'winner', None)
 
         if team2 and external_opponent:
             raise serializers.ValidationError("A match can have a second internal team or an external opponent, but not both.")
@@ -50,16 +63,16 @@ class MatchSerializer(serializers.ModelSerializer):
         for field_name, overs in (('team1_overs', team1_overs), ('team2_overs', team2_overs)):
             self._validate_overs_format(field_name, overs)
 
+        if team1_wickets is not None and team1_wickets > 10:
+            raise serializers.ValidationError({'team1_wickets': "Wickets cannot be more than 10."})
+        if team2_wickets is not None and team2_wickets > 10:
+            raise serializers.ValidationError({'team2_wickets': "Wickets cannot be more than 10."})
+
         score_fields = ('team1_runs', 'team1_overs', 'team2_runs', 'team2_overs')
         score_values = [team1_runs, team1_overs, team2_runs, team2_overs]
         has_partial_scores = any(value is not None for value in score_values) and any(value is None for value in score_values)
         if has_partial_scores:
             raise serializers.ValidationError({field: "All score and overs fields are required together." for field in score_fields})
-
-        if result in ('win', 'loss'):
-            missing_result_details = [field for field, value in zip(score_fields, score_values) if value is None]
-            if missing_result_details:
-                raise serializers.ValidationError({field: "This field is required when recording a result." for field in missing_result_details})
 
         if result == 'win':
             if winner and team1 and winner.id != team1.id:
@@ -81,6 +94,16 @@ class MatchSerializer(serializers.ModelSerializer):
 
         return data
 
+    def create(self, validated_data):
+        validated_data.pop('result', None)
+        validated_data.pop('winner', None)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('result', None)
+        validated_data.pop('winner', None)
+        return super().update(instance, validated_data)
+
     def _validate_overs_format(self, field_name, overs):
         if overs is None:
             return
@@ -90,6 +113,57 @@ class MatchSerializer(serializers.ModelSerializer):
         balls = overs_string.split('.', 1)[1]
         if not balls.isdigit() or len(balls) != 1 or int(balls) > 5:
             raise serializers.ValidationError({field_name: "Overs must use cricket notation, for example 17.2 or 20.0."})
+
+    def _apply_score_input(self, data, prefix):
+        score_key = f'{prefix}_score'
+        score_value = data.pop(score_key, None)
+        if not score_value:
+            return
+
+        parsed = self._parse_score(score_key, score_value)
+        for suffix, value in parsed.items():
+            field_name = f'{prefix}_{suffix}'
+            existing_value = data.get(field_name)
+            if existing_value is not None and str(existing_value) != str(value):
+                raise serializers.ValidationError({score_key: f"{score_key} conflicts with {field_name}."})
+            data[field_name] = value
+
+    def _derive_result_from_scores(self, data, team1, team2, team1_runs, team2_runs):
+        if team1_runs is None or team2_runs is None or team1 is None:
+            return
+        if team1_runs > team2_runs:
+            data['result'] = 'win'
+            data['winner'] = team1
+        elif team2_runs > team1_runs:
+            data['result'] = 'loss'
+            if team2 is not None:
+                data['winner'] = team2
+            else:
+                data['winner'] = None
+        else:
+            data['result'] = 'draw'
+            data['winner'] = None
+
+    def _parse_score(self, field_name, value):
+        match = re.match(r'^\s*(\d+)(?:\s*-\s*(\d+))?\s*\(\s*(\d+(?:\.\d)?)\s*\)\s*$', value)
+        if not match:
+            raise serializers.ValidationError({
+                field_name: "Use score format like 175-6 (20) or 107 (15.3)."
+            })
+
+        runs = int(match.group(1))
+        wickets = int(match.group(2)) if match.group(2) is not None else 10
+        overs_text = match.group(3)
+        try:
+            overs = Decimal(overs_text if '.' in overs_text else f'{overs_text}.0')
+        except InvalidOperation as exc:
+            raise serializers.ValidationError({field_name: "Invalid overs value."}) from exc
+
+        return {
+            'runs': runs,
+            'wickets': wickets,
+            'overs': overs,
+        }
 
 
 class LineupEntrySerializer(serializers.ModelSerializer):

@@ -31,8 +31,10 @@ class Match(models.Model):
     team_dress = models.CharField(max_length=100, null=True, blank=True)
     reporting_time = models.TimeField(null=True, blank=True)
     team1_runs = models.PositiveIntegerField(null=True, blank=True)
+    team1_wickets = models.PositiveSmallIntegerField(null=True, blank=True)
     team1_overs = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     team2_runs = models.PositiveIntegerField(null=True, blank=True)
+    team2_wickets = models.PositiveSmallIntegerField(null=True, blank=True)
     team2_overs = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     RESULT_CHOICES = [
         ('win', 'Win'),
