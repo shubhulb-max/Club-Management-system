@@ -29,7 +29,8 @@ class InventoryItem(models.Model):
         blank=True,
     )
     name = models.CharField(max_length=100)
-    description = models.TextField()
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to='inventory/items/', null=True, blank=True)
     quantity = models.PositiveIntegerField(default=0)
     available_quantity = models.PositiveIntegerField(default=0)
     missing_quantity = models.PositiveIntegerField(default=0)

@@ -3,7 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from io import BytesIO
 from PIL import Image
 from .models import InventoryItem, Sale, ItemAssignment
-from .serializers import InventoryCategorySerializer
+from .serializers import InventoryCategorySerializer, InventoryItemSerializer
 from players.models import Player
 from teams.models import Team
 from financials.models import Transaction
@@ -13,12 +13,12 @@ class InventoryItemModelTest(TestCase):
     def test_inventory_item_creation(self):
         item = InventoryItem.objects.create(
             name='Club T-Shirt',
-            description='Official club merchandise',
             quantity=50,
             price=25.00,
             type='merchandise'
         )
         self.assertEqual(str(item), 'Club T-Shirt')
+        self.assertEqual(item.description, '')
 
 class SaleModelTest(TestCase):
     def setUp(self):
@@ -93,6 +93,50 @@ class InventoryCategoryImageValidationTest(TestCase):
                 "name": "Pads",
                 "description": "Category",
                 "image": self._build_test_image(),
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+
+class InventoryItemImageValidationTest(TestCase):
+    def _build_test_image(self):
+        buffer = BytesIO()
+        image = Image.new("RGB", (20, 20), color="blue")
+        image.save(buffer, format="PNG")
+        buffer.seek(0)
+        return SimpleUploadedFile("item.png", buffer.getvalue(), content_type="image/png")
+
+    def test_description_is_optional_for_inventory_item(self):
+        serializer = InventoryItemSerializer(
+            data={
+                "name": "Practice Jersey",
+                "quantity": 12,
+                "type": "merchandise",
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_rejects_fake_item_image(self):
+        serializer = InventoryItemSerializer(
+            data={
+                "name": "Kit Bag",
+                "description": "",
+                "image": SimpleUploadedFile("item.png", b"bad image data", content_type="image/png"),
+                "quantity": 3,
+                "type": "merchandise",
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("image", serializer.errors)
+
+    def test_accepts_valid_item_image(self):
+        serializer = InventoryItemSerializer(
+            data={
+                "name": "Cap",
+                "description": "",
+                "image": self._build_test_image(),
+                "quantity": 8,
+                "type": "merchandise",
             }
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)

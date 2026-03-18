@@ -22,6 +22,7 @@ class InventoryItemSerializer(serializers.ModelSerializer):
             'category_detail',
             'name',
             'description',
+            'image',
             'quantity',
             'available_quantity',
             'missing_quantity',
@@ -30,6 +31,9 @@ class InventoryItemSerializer(serializers.ModelSerializer):
             'price',
             'type',
         ]
+
+    def validate_image(self, value):
+        return validate_uploaded_image(value)
 
 class ItemAssignmentSerializer(serializers.ModelSerializer):
     class Meta:

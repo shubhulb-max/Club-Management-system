@@ -9,6 +9,7 @@ class InventoryItemAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'category',
+        'image',
         'type',
         'quantity',
         'available_quantity',
