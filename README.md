@@ -104,6 +104,7 @@ All API endpoints are prefixed with `/api/`.
   "external_opponent": null,
   "ground": 1,
   "date": "2023-10-27T10:00:00Z",
+  "status": "scheduled",
   "match_type": "friendly",
   "tournament": null,
   "match_format": "t20",
@@ -119,7 +120,7 @@ All API endpoints are prefixed with `/api/`.
   "team2_overs": "19.2"
 }
 ```
-*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, and `team_dress` are required when creating a match. `reporting_time` is optional. Normal matches default to `friendly`. Use `match_type: "tournament"` with a valid `tournament` id for tournament matches. When recording scores, send separate `runs`, `wickets`, and `overs` fields for both teams. The API derives `result`, `winner`, and `result_summary` automatically. Manual `result` and `winner` input is ignored.*
+*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, and `team_dress` are required when creating a match. `reporting_time` is optional. `status` supports `scheduled`, `in_progress`, `completed`, and `cancelled`. Normal matches default to `friendly`. Use `match_type: "tournament"` with a valid `tournament` id for tournament matches. When recording scores, send separate `runs`, `wickets`, and `overs` fields for both teams and mark the match `completed`. The API derives `result`, `winner`, and `result_summary` automatically. Manual `result` and `winner` input is ignored.*
 
 **Response Payload:**
 ```json
@@ -130,6 +131,7 @@ All API endpoints are prefixed with `/api/`.
   "external_opponent": null,
   "ground": 1,
   "date": "2023-10-27T10:00:00Z",
+  "status": "completed",
   "match_type": "friendly",
   "tournament": null,
   "match_format": "t20",

@@ -19,6 +19,7 @@ class MatchSerializerTest(TestCase):
             'team1': self.team1.id,
             'ground': self.ground.id,
             'date': self.match_date,
+            'status': 'scheduled',
             'match_type': 'friendly',
             'match_format': 't20',
             'ball_type': 'tennis',
@@ -109,11 +110,37 @@ class MatchSerializerTest(TestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_completed_match_requires_full_scores(self):
+        data = {
+            **self.base_data,
+            'status': 'completed',
+            'external_opponent': "External Team",
+        }
+        serializer = MatchSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_scheduled_match_cannot_have_scores(self):
+        data = {
+            **self.base_data,
+            'external_opponent': "External Team",
+            'team1_runs': 175,
+            'team1_wickets': 6,
+            'team1_overs': '20.0',
+            'team2_runs': 107,
+            'team2_wickets': 10,
+            'team2_overs': '15.3',
+        }
+        serializer = MatchSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
     def test_separate_score_fields_derive_result(self):
         captain2 = Player.objects.create(first_name="Captain", last_name="Five", age=28, role="bowler")
         team2 = Team.objects.create(name="Team Five", captain=captain2)
         data = {
             **self.base_data,
+            'status': 'completed',
             'team2': team2.id,
             'team1_runs': 175,
             'team1_wickets': 6,
@@ -138,6 +165,7 @@ class MatchSerializerTest(TestCase):
         team2 = Team.objects.create(name="Team Six", captain=captain2)
         data = {
             **self.base_data,
+            'status': 'completed',
             'team2': team2.id,
             'team1_runs': 175,
             'team1_wickets': 6,

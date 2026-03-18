@@ -7,6 +7,12 @@ from players.models import Player
 from tournaments.models import Tournament
 
 class Match(models.Model):
+    STATUS_CHOICES = [
+        ("scheduled", "Scheduled"),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
+    ]
     MATCH_TYPE_CHOICES = [
         ("friendly", "Friendly"),
         ("tournament", "Tournament"),
@@ -29,6 +35,7 @@ class Match(models.Model):
     team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_team2', null=True, blank=True)
     external_opponent = models.CharField(max_length=100, null=True, blank=True)
     ground = models.ForeignKey(Ground, on_delete=models.SET_NULL, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="scheduled")
     match_type = models.CharField(max_length=20, choices=MATCH_TYPE_CHOICES, default="friendly")
     tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name="matches")
     date = models.DateTimeField()

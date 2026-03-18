@@ -10,6 +10,7 @@ class MatchSerializer(serializers.ModelSerializer):
         model = Match
         fields = [
             'id', 'team1', 'team2', 'external_opponent', 'ground', 'date',
+            'status',
             'match_type', 'tournament',
             'match_format', 'overs_per_side', 'ball_type', 'team_dress', 'reporting_time',
             'team1_runs', 'team1_wickets', 'team1_overs', 'team2_runs', 'team2_wickets', 'team2_overs',
@@ -32,6 +33,7 @@ class MatchSerializer(serializers.ModelSerializer):
             if 'external_opponent' in data else getattr(instance, 'external_opponent', None)
         )
         tournament = data.get('tournament') if 'tournament' in data else getattr(instance, 'tournament', None)
+        status = data.get('status') if 'status' in data else getattr(instance, 'status', 'scheduled')
         match_type = data.get('match_type') if 'match_type' in data else getattr(instance, 'match_type', 'friendly')
         if not match_type:
             match_type = 'friendly'
@@ -82,6 +84,11 @@ class MatchSerializer(serializers.ModelSerializer):
         if has_partial_scores:
             raise serializers.ValidationError({field: "All score and overs fields are required together." for field in score_fields})
 
+        if status == 'completed' and any(value is None for value in score_values):
+            raise serializers.ValidationError({'status': "Completed matches require runs, wickets, and overs for both teams."})
+        if status in ('scheduled', 'cancelled') and any(value is not None for value in score_values):
+            raise serializers.ValidationError({'status': "Scheduled or cancelled matches cannot have result scores."})
+
         if result == 'win':
             if winner and team1 and winner.id != team1.id:
                 raise serializers.ValidationError({'winner': "Winner must be team1 when result is win."})
@@ -101,16 +108,6 @@ class MatchSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'overs_per_side': "overs_per_side must be greater than 0."})
 
         return data
-
-    def create(self, validated_data):
-        validated_data.pop('result', None)
-        validated_data.pop('winner', None)
-        return super().create(validated_data)
-
-    def update(self, instance, validated_data):
-        validated_data.pop('result', None)
-        validated_data.pop('winner', None)
-        return super().update(instance, validated_data)
 
     def _validate_overs_format(self, field_name, overs):
         if overs is None:
