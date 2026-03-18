@@ -1,22 +1,25 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import make_password
-from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from accounts.phone_utils import normalize_phone_number
 from .models import Player, RegistrationRequest
 
 class RegisterSerializer(serializers.Serializer):
-    phone_validator = RegexValidator(
-        regex=r"^\d{10,15}$",
-        message="Phone number must be 10 to 15 digits."
-    )
-    phone_number = serializers.CharField(max_length=15, required=True, validators=[phone_validator])
+    phone_number = serializers.CharField(max_length=20, required=True)
     password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
     first_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
     last_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
+
+    def validate_phone_number(self, value):
+        try:
+            return normalize_phone_number(value)
+        except ValidationError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def validate_password(self, value):
         validate_password(value)
@@ -39,12 +42,14 @@ class RegisterSerializer(serializers.Serializer):
         return registration
 
 class LoginSerializer(serializers.Serializer):
-    phone_validator = RegexValidator(
-        regex=r"^\d{10,15}$",
-        message="Phone number must be 10 to 15 digits."
-    )
-    phone_number = serializers.CharField(max_length=15, required=True, validators=[phone_validator])
+    phone_number = serializers.CharField(max_length=20, required=True)
     password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
+
+    def validate_phone_number(self, value):
+        try:
+            return normalize_phone_number(value)
+        except ValidationError as exc:
+            raise serializers.ValidationError(str(exc))
 
 
 class RegistrationRequestSerializer(serializers.ModelSerializer):
@@ -121,6 +126,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         phone_number = attrs.get(self.username_field)
+        if phone_number is not None:
+            try:
+                phone_number = normalize_phone_number(phone_number)
+            except ValidationError as exc:
+                raise AuthenticationFailed(str(exc))
+            attrs[self.username_field] = phone_number
         pending_request = RegistrationRequest.objects.filter(phone_number=phone_number).first()
         if pending_request and pending_request.status == RegistrationRequest.STATUS_PENDING:
             raise AuthenticationFailed("Registration is pending admin approval.")

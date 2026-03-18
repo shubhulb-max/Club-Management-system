@@ -104,11 +104,20 @@ All API endpoints are prefixed with `/api/`.
   "external_opponent": null,
   "ground": 1,
   "date": "2023-10-27T10:00:00Z",
-  "result": "Team 1 won by 20 runs",
+  "match_format": "t20",
+  "overs_per_side": 20,
+  "ball_type": "tennis",
+  "team_dress": "Blue Jersey",
+  "reporting_time": "09:00:00",
+  "team1_runs": 178,
+  "team1_overs": "20.0",
+  "team2_runs": 158,
+  "team2_overs": "19.2",
+  "result": "win",
   "winner": 1
 }
 ```
-*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both.*
+*Validation Rule: A match must have either `team2` (for internal matches) OR `external_opponent` (string name for external matches), but NOT both. `match_format`, `ball_type`, `team_dress`, and `reporting_time` are required when creating a match. When recording a `win` or `loss`, provide both teams' runs and overs so the API can generate a result summary like "won by 20 runs" or "won by 8 balls".*
 
 **Response Payload:**
 ```json
@@ -119,8 +128,18 @@ All API endpoints are prefixed with `/api/`.
   "external_opponent": null,
   "ground": 1,
   "date": "2023-10-27T10:00:00Z",
-  "result": "Team 1 won by 20 runs",
-  "winner": 1
+  "match_format": "t20",
+  "overs_per_side": 20,
+  "ball_type": "tennis",
+  "team_dress": "Blue Jersey",
+  "reporting_time": "09:00:00",
+  "team1_runs": 178,
+  "team1_overs": "20.0",
+  "team2_runs": 158,
+  "team2_overs": "19.2",
+  "result": "win",
+  "winner": 1,
+  "result_summary": "Team One won by 20 runs"
 }
 ```
 

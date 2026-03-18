@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import serializers
+from accounts.phone_utils import normalize_phone_number
 from cricket_club.upload_validators import validate_uploaded_image
 from .models import Player, Membership
 from teams.models import Team
@@ -39,6 +41,14 @@ class PlayerSerializer(serializers.ModelSerializer):
             'phone_number', 'membership_active', 'membership', 'teams',
             'captain_of', 'tournament_participations', 'password'
         ]
+
+    def validate_phone_number(self, value):
+        if value in (None, ""):
+            return value
+        try:
+            return normalize_phone_number(value)
+        except ValidationError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def validate(self, attrs):
         password = attrs.get('password')

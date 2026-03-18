@@ -9,6 +9,9 @@ from .models import Player, RegistrationRequest, Subscription
 from financials.models import Transaction
 from datetime import date, timedelta
 
+VALID_PASSWORD = "Str0ngPass!234"
+
+
 class PlayerModelTest(TestCase):
 
     def setUp(self):
@@ -59,7 +62,7 @@ class AuthTests(TestCase):
     def test_register_new_player(self):
         data = {
             "phone_number": "1234567890",
-            "password": "password123",
+            "password": VALID_PASSWORD,
             "first_name": "New",
             "last_name": "User"
         }
@@ -76,7 +79,7 @@ class AuthTests(TestCase):
     def test_register_existing_player_creates_pending_request(self):
         data = {
             "phone_number": "9988776655",
-            "password": "password123",
+            "password": VALID_PASSWORD,
             "first_name": "Updated",
             "last_name": "Name"
         }
@@ -93,23 +96,69 @@ class AuthTests(TestCase):
 
     def test_register_existing_user_fail(self):
         User = get_user_model()
-        User.objects.create_user(phone_number="1234567890", password="password")
+        User.objects.create_user(phone_number="1234567890", password=VALID_PASSWORD)
 
         data = {
             "phone_number": "1234567890",
-            "password": "password123",
+            "password": VALID_PASSWORD,
             "first_name": "Existing",
             "last_name": "User"
         }
         response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_register_normalizes_indian_prefixes_for_duplicate_check(self):
+        User = get_user_model()
+        User.objects.create_user(phone_number="9876543210", password=VALID_PASSWORD)
+
+        response = self.client.post(
+            self.register_url,
+            {
+                "phone_number": "+91 98765 43210",
+                "password": VALID_PASSWORD,
+                "first_name": "Existing",
+                "last_name": "User",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_accepts_phone_number_with_country_code(self):
+        User = get_user_model()
+        User.objects.create_user(phone_number="9999999999", password=VALID_PASSWORD)
+
+        response = self.client.post(
+            self.login_url,
+            {
+                "phone_number": "+91 99999 99999",
+                "password": VALID_PASSWORD,
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_register_stores_normalized_phone_number(self):
+        response = self.client.post(
+            self.register_url,
+            {
+                "phone_number": "09876543210",
+                "password": VALID_PASSWORD,
+                "first_name": "Zero",
+                "last_name": "Prefix",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        registration = RegistrationRequest.objects.get(id=response.data["registration_id"])
+        self.assertEqual(registration.phone_number, "9876543210")
+
     def test_login_rejects_pending_registration(self):
         self.client.post(
             self.register_url,
             {
                 "phone_number": "1234567890",
-                "password": "password123",
+                "password": VALID_PASSWORD,
                 "first_name": "Pending",
                 "last_name": "User",
             },
@@ -119,7 +168,7 @@ class AuthTests(TestCase):
             self.login_url,
             {
                 "phone_number": "1234567890",
-                "password": "password123",
+                "password": VALID_PASSWORD,
             },
         )
 
@@ -131,7 +180,7 @@ class AuthTests(TestCase):
             self.register_url,
             {
                 "phone_number": "9988776655",
-                "password": "password123",
+                "password": VALID_PASSWORD,
                 "first_name": "Updated",
                 "last_name": "Name",
             },
@@ -139,7 +188,7 @@ class AuthTests(TestCase):
         registration_id = register_response.data["registration_id"]
 
         User = get_user_model()
-        admin_user = User.objects.create_user(phone_number="7777777777", password="password", is_staff=True)
+        admin_user = User.objects.create_user(phone_number="7777777777", password=VALID_PASSWORD, is_staff=True)
         self.client.force_authenticate(user=admin_user)
 
         list_response = self.client.get(self.registration_list_url)
@@ -167,18 +216,18 @@ class AuthTests(TestCase):
         self.client.force_authenticate(user=None)
         login_response = self.client.post(
             self.login_url,
-            {"phone_number": "9988776655", "password": "password123"},
+            {"phone_number": "9988776655", "password": VALID_PASSWORD},
         )
         self.assertEqual(login_response.status_code, status.HTTP_200_OK)
         self.assertIn("access", login_response.data)
 
     def test_login_success(self):
         User = get_user_model()
-        User.objects.create_user(phone_number="9999999999", password="password123")
+        User.objects.create_user(phone_number="9999999999", password=VALID_PASSWORD)
 
         data = {
             "phone_number": "9999999999",
-            "password": "password123"
+            "password": VALID_PASSWORD
         }
         response = self.client.post(self.login_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -203,7 +252,7 @@ class PlayerImageUploadValidationTests(TestCase):
 
     def test_rejects_fake_profile_picture(self):
         client = APIClient()
-        user = get_user_model().objects.create_user(phone_number="8888888888", password="password123")
+        user = get_user_model().objects.create_user(phone_number="8888888888", password=VALID_PASSWORD)
         client.force_authenticate(user=user)
 
         response = client.post(
@@ -228,7 +277,7 @@ class PlayerImageUploadValidationTests(TestCase):
 
     def test_accepts_valid_profile_picture(self):
         client = APIClient()
-        user = get_user_model().objects.create_user(phone_number="8877777777", password="password123")
+        user = get_user_model().objects.create_user(phone_number="8877777777", password=VALID_PASSWORD)
         client.force_authenticate(user=user)
 
         response = client.post(

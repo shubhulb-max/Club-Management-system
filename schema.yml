@@ -1603,6 +1603,20 @@ components:
       - password
       - token
       - username
+    BallTypeEnum:
+      enum:
+      - whiteleather
+      - redleather
+      - pinkleather
+      - tennis
+      - other
+      type: string
+      description: |-
+        * `whiteleather` - RedLeather
+        * `redleather` - WhiteLeather
+        * `pinkleather` - PinkLeather
+        * `tennis` - Tennis
+        * `other` - Other
     BlankEnum:
       enum:
       - ''
@@ -1707,6 +1721,51 @@ components:
         date:
           type: string
           format: date-time
+        match_format:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/MatchFormatEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        overs_per_side:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        ball_type:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/BallTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        team_dress:
+          type: string
+          nullable: true
+          maxLength: 100
+        reporting_time:
+          type: string
+          nullable: true
+        team1_runs:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        team1_overs:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d)?$
+          nullable: true
+        team2_runs:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        team2_overs:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d)?$
+          nullable: true
         result:
           nullable: true
           oneOf:
@@ -1716,9 +1775,13 @@ components:
         winner:
           type: integer
           nullable: true
+        result_summary:
+          type: string
+          readOnly: true
       required:
       - date
       - id
+      - result_summary
       - team1
     Membership:
       type: object
@@ -1733,6 +1796,20 @@ components:
     NullEnum:
       enum:
       - null
+    MatchFormatEnum:
+      enum:
+      - t10
+      - t20
+      - odi
+      - test
+      - other
+      type: string
+      description: |-
+        * `t10` - T10
+        * `t20` - T20
+        * `odi` - ODI
+        * `test` - Test
+        * `other` - Other
     PatchedGround:
       type: object
       properties:
@@ -1807,6 +1884,51 @@ components:
         date:
           type: string
           format: date-time
+        match_format:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/MatchFormatEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        overs_per_side:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        ball_type:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/BallTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        team_dress:
+          type: string
+          nullable: true
+          maxLength: 100
+        reporting_time:
+          type: string
+          nullable: true
+        team1_runs:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        team1_overs:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d)?$
+          nullable: true
+        team2_runs:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        team2_overs:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d)?$
+          nullable: true
         result:
           nullable: true
           oneOf:
@@ -1816,6 +1938,9 @@ components:
         winner:
           type: integer
           nullable: true
+        result_summary:
+          type: string
+          readOnly: true
     PatchedPlayer:
       type: object
       properties:

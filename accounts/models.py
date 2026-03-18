@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from .phone_utils import normalize_phone_number
 
 
 class UserManager(BaseUserManager):
@@ -8,7 +9,7 @@ class UserManager(BaseUserManager):
         if not phone_number:
             raise ValueError("Phone number is required.")
 
-        phone_number = str(phone_number).strip()
+        phone_number = normalize_phone_number(phone_number)
         user = self.model(phone_number=phone_number, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -39,6 +40,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = "phone_number"
     REQUIRED_FIELDS = []
+
+    def save(self, *args, **kwargs):
+        self.phone_number = normalize_phone_number(self.phone_number)
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.phone_number

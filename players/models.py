@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from datetime import date, timedelta
+from accounts.phone_utils import normalize_phone_number
 
 
 class Player(models.Model):
@@ -47,6 +48,9 @@ class Player(models.Model):
                 self.last_name = self.user.last_name
             if not self.phone_number:
                 self.phone_number = self.user.phone_number
+
+        if self.phone_number:
+            self.phone_number = normalize_phone_number(self.phone_number)
 
         super().save(*args, **kwargs)
 
@@ -104,6 +108,10 @@ class RegistrationRequest(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        self.phone_number = normalize_phone_number(self.phone_number)
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.phone_number} ({self.status})"
