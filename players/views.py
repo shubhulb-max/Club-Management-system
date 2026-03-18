@@ -154,6 +154,42 @@ class ApproveRegistrationView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
+class RejectRegistrationView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, registration_id):
+        with transaction.atomic():
+            registration = get_object_or_404(
+                RegistrationRequest.objects.select_for_update(),
+                id=registration_id,
+            )
+
+            if registration.status == RegistrationRequest.STATUS_APPROVED:
+                return Response(
+                    {"error": "Approved registration request cannot be rejected."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if registration.status == RegistrationRequest.STATUS_REJECTED:
+                return Response(
+                    {"error": "Registration request is already rejected."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            registration.status = RegistrationRequest.STATUS_REJECTED
+            registration.approved_at = timezone.now()
+            registration.approved_by = request.user
+            registration.save(update_fields=["status", "approved_at", "approved_by", "updated_at"])
+
+        return Response(
+            {
+                "message": "Registration rejected successfully.",
+                "status": registration.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 class PlayerDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 

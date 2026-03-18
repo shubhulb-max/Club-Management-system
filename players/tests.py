@@ -221,6 +221,44 @@ class AuthTests(TestCase):
         self.assertEqual(login_response.status_code, status.HTTP_200_OK)
         self.assertIn("access", login_response.data)
 
+    def test_admin_can_reject_registration(self):
+        register_response = self.client.post(
+            self.register_url,
+            {
+                "phone_number": "9123456789",
+                "password": VALID_PASSWORD,
+                "first_name": "Declined",
+                "last_name": "User",
+            },
+        )
+        registration_id = register_response.data["registration_id"]
+
+        User = get_user_model()
+        admin_user = User.objects.create_user(phone_number="7666666666", password=VALID_PASSWORD, is_staff=True)
+        self.client.force_authenticate(user=admin_user)
+
+        reject_response = self.client.post(
+            f"/api/auth/registrations/{registration_id}/reject/",
+            format="json",
+        )
+        self.assertEqual(reject_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(reject_response.data["status"], RegistrationRequest.STATUS_REJECTED)
+
+        registration = RegistrationRequest.objects.get(id=registration_id)
+        self.assertEqual(registration.status, RegistrationRequest.STATUS_REJECTED)
+        self.assertEqual(registration.approved_by, admin_user)
+
+        User = get_user_model()
+        self.assertFalse(User.objects.filter(phone_number="9123456789").exists())
+
+        self.client.force_authenticate(user=None)
+        login_response = self.client.post(
+            self.login_url,
+            {"phone_number": "9123456789", "password": VALID_PASSWORD},
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("rejected", str(login_response.data).lower())
+
     def test_login_success(self):
         User = get_user_model()
         User.objects.create_user(phone_number="9999999999", password=VALID_PASSWORD)
