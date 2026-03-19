@@ -8,8 +8,8 @@ class MembershipFeeScheduleAdmin(admin.ModelAdmin):
     ordering = ("-effective_from",)
 
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('player', 'category', 'amount', 'due_date', 'paid', 'payment_date')
+    list_display = ('player', 'category', 'amount', 'due_date', 'paid', 'waived', 'payment_date')
     search_fields = ['player__first_name', 'player__last_name']
-    list_filter = ('category', 'paid', 'due_date')
+    list_filter = ('category', 'paid', 'waived', 'due_date')
 
 admin.site.register(Transaction, TransactionAdmin)

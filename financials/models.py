@@ -29,7 +29,12 @@ class Transaction(models.Model):
     due_date = models.DateField(default=date.today)
     paid = models.BooleanField(default=False)
     payment_date = models.DateField(null=True, blank=True)
+    waived = models.BooleanField(default=False)
+    waived_reason = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
+        if self.waived:
+            status = "Waived"
+        else:
+            status = "Paid" if self.paid else "Unpaid"
         return f"{self.get_category_display()} for {self.player} ({status})"

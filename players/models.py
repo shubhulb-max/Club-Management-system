@@ -45,12 +45,13 @@ class Player(models.Model):
         return not self.transactions.filter(
             category='monthly',
             paid=False,
+            waived=False,
             due_date__lt=thirty_days_ago
         ).exists()
 
     def oldest_unpaid_monthly_due_date(self):
         overdue_transaction = (
-            self.transactions.filter(category="monthly", paid=False)
+            self.transactions.filter(category="monthly", paid=False, waived=False)
             .order_by("due_date", "id")
             .first()
         )

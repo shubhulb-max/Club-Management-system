@@ -59,6 +59,9 @@ class InitiatePaymentView(APIView):
         if not hasattr(request.user, 'player') or transaction.player != request.user.player:
             return Response({"error": "You do not have permission to pay for this transaction"}, status=status.HTTP_403_FORBIDDEN)
 
+        if transaction.waived:
+            return Response({"message": "Transaction has been waived"}, status=status.HTTP_400_BAD_REQUEST)
+
         if transaction.paid:
             return Response({"message": "Transaction already paid"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -133,6 +136,9 @@ class PaymentCallbackView(APIView):
                     
                     transaction = Transaction.objects.get(id=txn_id)
                     
+                    if transaction.waived:
+                        return Response({"message": "Transaction has been waived"}, status=status.HTTP_400_BAD_REQUEST)
+
                     if not transaction.paid:
                         transaction.paid = True
                         transaction.payment_date = date.today()

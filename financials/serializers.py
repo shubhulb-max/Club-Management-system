@@ -5,7 +5,7 @@ from .models import Transaction
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id', 'player', 'category', 'amount', 'due_date', 'paid', 'payment_date']
+        fields = ['id', 'player', 'category', 'amount', 'due_date', 'paid', 'payment_date', 'waived', 'waived_reason']
 
 
 class InitiatePaymentSerializer(serializers.Serializer):

@@ -108,6 +108,14 @@ class PaymentFlowTests(TestCase):
         response = self.client.post(self.initiate_url, {'transaction_id': self.transaction.id})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_initiate_payment_rejects_waived_transaction(self):
+        self.transaction.waived = True
+        self.transaction.waived_reason = "Approved leave"
+        self.transaction.save(update_fields=["waived", "waived_reason"])
+
+        response = self.client.post(self.initiate_url, {'transaction_id': self.transaction.id})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 class GenerateMonthlyInvoicesApiTests(TestCase):
     def setUp(self):
@@ -211,6 +219,17 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
             ).exists()
         )
 
+    def test_january_2026_uses_old_rate_and_february_2026_uses_new_rate(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        january_response = self.client.post(self.url, {'billing_date': '2026-01-01'}, format='json')
+        february_response = self.client.post(self.url, {'billing_date': '2026-02-01'}, format='json')
+
+        self.assertEqual(january_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(february_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(january_response.data['amount'], '750.00')
+        self.assertEqual(february_response.data['amount'], '1050.00')
+
     def test_future_join_date_is_not_billed(self):
         self.active_player.membership.join_date = date(2026, 4, 1)
         self.active_player.membership.status = "active"
@@ -284,6 +303,24 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
                 due_date=date(2026, 3, 10),
             ).exists()
         )
+
+    def test_waived_invoice_does_not_block_membership_status(self):
+        Transaction.objects.create(
+            player=self.active_player,
+            category='monthly',
+            amount=750,
+            due_date=date(2025, 11, 30),
+            paid=False,
+            waived=True,
+            waived_reason="Management waiver",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.active_player.membership.refresh_from_db()
+        self.assertEqual(self.active_player.membership.status, "active")
 
     def test_backfill_creates_paid_months_and_skips_leave(self):
         MembershipLeave.objects.create(

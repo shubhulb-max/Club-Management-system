@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from PIL import Image
 from io import BytesIO
-from .models import Player, RegistrationRequest, Subscription
+from .models import MembershipLeave, Player, RegistrationRequest, Subscription
 from financials.models import Transaction
 from datetime import date, timedelta
 
@@ -76,6 +76,24 @@ class PlayerModelTest(TestCase):
         self.assertEqual(status_value, "left")
         self.player.membership.refresh_from_db()
         self.assertEqual(self.player.membership.status, "left")
+
+    def test_waived_monthly_invoice_does_not_lapse_membership(self):
+        self.player.membership.status = "active"
+        self.player.membership.save(update_fields=["status"])
+        Transaction.objects.create(
+            player=self.player,
+            category='monthly',
+            amount=750,
+            due_date=date.today() - timedelta(days=91),
+            paid=False,
+            waived=True,
+            waived_reason="Approved waiver",
+        )
+
+        status_value = self.player.sync_membership_status()
+
+        self.assertEqual(status_value, "active")
+        self.assertTrue(self.player.membership_active)
 
 class AuthTests(TestCase):
     def setUp(self):
@@ -418,3 +436,64 @@ class PlayerMembershipManualFieldsTests(TestCase):
         player = Player.objects.get(phone_number="4444444444")
         self.assertTrue(player.membership.fee_exempt)
         self.assertEqual(player.membership.fee_exempt_reason, "Club management exemption")
+
+
+class MembershipLeaveApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin_user = get_user_model().objects.create_user(
+            phone_number="8844444444",
+            password=VALID_PASSWORD,
+            is_staff=True,
+        )
+        self.player = Player.objects.create(
+            first_name="Leave",
+            last_name="Member",
+            age=28,
+            role="bowler",
+            phone_number="5555555555",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+        self.list_url = f"/api/auth/players/{self.player.id}/membership-leaves/"
+
+    def test_admin_can_create_and_list_membership_leave(self):
+        create_response = self.client.post(
+            self.list_url,
+            {
+                "start_date": "2025-02-01",
+                "end_date": "2025-02-28",
+                "reason": "Approved leave",
+            },
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(create_response.data["reason"], "Approved leave")
+
+        list_response = self.client.get(self.list_url)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(list_response.data[0]["start_date"], "2025-02-01")
+
+    def test_admin_can_update_and_delete_membership_leave(self):
+        leave_period = MembershipLeave.objects.create(
+            membership=self.player.membership,
+            start_date=date(2025, 2, 1),
+            end_date=date(2025, 2, 28),
+            reason="Initial reason",
+        )
+        detail_url = f"/api/auth/membership-leaves/{leave_period.id}/"
+
+        update_response = self.client.patch(
+            detail_url,
+            {"reason": "Updated leave reason", "end_date": "2025-03-05"},
+            format="json",
+        )
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.data["reason"], "Updated leave reason")
+        self.assertEqual(update_response.data["end_date"], "2025-03-05")
+
+        delete_response = self.client.delete(detail_url)
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(MembershipLeave.objects.filter(id=leave_period.id).exists())

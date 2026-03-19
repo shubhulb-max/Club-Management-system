@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_spectacular.utils import extend_schema
 from django.db import transaction
-from .models import Player, RegistrationRequest
-from .serializers import PlayerSerializer
+from .models import MembershipLeave, Player, RegistrationRequest
+from .serializers import MembershipLeaveSerializer, PlayerSerializer
 from .auth_serializers import (
     ApproveRegistrationSerializer,
     CustomTokenObtainPairSerializer,
@@ -219,7 +219,7 @@ class PlayerDashboardView(APIView):
         )
 
         membership_transaction = (
-            Transaction.objects.filter(player=player, category="monthly", paid=False)
+            Transaction.objects.filter(player=player, category="monthly", paid=False, waived=False)
             .order_by("due_date", "id")
             .first()
         )
@@ -247,3 +247,49 @@ class PlayerDashboardView(APIView):
             "media": MediaSerializer(recent_media, many=True).data,
             "media_upload_endpoint": "/api/media/"
         }, status=status.HTTP_200_OK)
+
+
+class MembershipLeaveListCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, player_id):
+        player = get_object_or_404(Player.objects.select_related("membership"), id=player_id)
+        membership = getattr(player, "membership", None)
+        if membership is None:
+            return Response({"error": "Membership not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = MembershipLeaveSerializer(membership.leave_periods.all(), many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(request=MembershipLeaveSerializer, responses={201: MembershipLeaveSerializer})
+    def post(self, request, player_id):
+        player = get_object_or_404(Player.objects.select_related("membership"), id=player_id)
+        membership = getattr(player, "membership", None)
+        if membership is None:
+            return Response({"error": "Membership not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MembershipLeaveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        leave_period = serializer.save(membership=membership)
+        return Response(MembershipLeaveSerializer(leave_period).data, status=status.HTTP_201_CREATED)
+
+
+class MembershipLeaveDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get_object(self, leave_id):
+        return get_object_or_404(
+            MembershipLeave.objects.select_related("membership", "membership__player"),
+            id=leave_id,
+        )
+
+    def patch(self, request, leave_id):
+        leave_period = self.get_object(leave_id)
+        serializer = MembershipLeaveSerializer(leave_period, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, leave_id):
+        leave_period = self.get_object(leave_id)
+        leave_period.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
