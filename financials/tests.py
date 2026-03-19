@@ -1,8 +1,8 @@
 from django.test import TestCase
 from django.core.management import call_command
-from players.models import Player
+from players.models import MembershipLeave, Player
 from financials.models import Transaction
-from financials.services import MONTHLY_INVOICE_AMOUNT
+from financials.services import get_monthly_invoice_amount
 from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -16,8 +16,12 @@ from unittest.mock import patch, MagicMock
 class GenerateMonthlyFeesTest(TestCase):
 
     def setUp(self):
-        self.active_player = Player.objects.create(first_name='Active', last_name='Player', age=25, role='batsman')
+        self.active_player = Player.objects.create(first_name='Active', last_name='Player', age=25, role='top_order_batter')
         self.overdue_player = Player.objects.create(first_name='Overdue', last_name='Player', age=30, role='all_rounder')
+        self.active_player.membership.status = "active"
+        self.active_player.membership.save(update_fields=["status"])
+        self.overdue_player.membership.status = "active"
+        self.overdue_player.membership.save(update_fields=["status"])
 
         # Make the overdue player's membership inactive
         Transaction.objects.create(
@@ -37,7 +41,7 @@ class GenerateMonthlyFeesTest(TestCase):
             Transaction.objects.filter(
                 player=self.active_player,
                 category='monthly',
-                amount=MONTHLY_INVOICE_AMOUNT,
+                amount=get_monthly_invoice_amount(date.today()),
                 due_date=date.today().replace(day=10),
                 paid=False
             ).exists()
@@ -66,7 +70,7 @@ class PaymentFlowTests(TestCase):
             first_name="Test",
             last_name="Player",
             age=25,
-            role="batsman",
+            role="top_order_batter",
             phone_number="9876543210"
         )
         self.transaction = Transaction.objects.create(
@@ -122,7 +126,7 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
             first_name='Active',
             last_name='Member',
             age=21,
-            role='batsman',
+            role='top_order_batter',
             phone_number='8000000001',
         )
         self.overdue_player = Player.objects.create(
@@ -132,6 +136,10 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
             role='bowler',
             phone_number='8000000002',
         )
+        self.active_player.membership.status = "active"
+        self.active_player.membership.save(update_fields=["status"])
+        self.overdue_player.membership.status = "active"
+        self.overdue_player.membership.save(update_fields=["status"])
         Transaction.objects.create(
             player=self.overdue_player,
             category='monthly',
@@ -140,6 +148,7 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
             paid=False,
         )
         self.url = reverse('generate-monthly-invoices')
+        self.backfill_url = reverse('backfill-monthly-payments')
 
     def test_admin_can_generate_monthly_invoices(self):
         self.client.force_authenticate(user=self.admin_user)
@@ -157,7 +166,7 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
             Transaction.objects.filter(
                 player=self.active_player,
                 category='monthly',
-                amount=MONTHLY_INVOICE_AMOUNT,
+                amount=get_monthly_invoice_amount(date(2026, 3, 1)),
                 due_date=date(2026, 3, 10),
                 paid=False,
             ).exists()
@@ -179,10 +188,137 @@ class GenerateMonthlyInvoicesApiTests(TestCase):
             Transaction.objects.filter(
                 player=self.active_player,
                 category='monthly',
-                amount=MONTHLY_INVOICE_AMOUNT,
+                amount=get_monthly_invoice_amount(date(2026, 3, 1)),
                 due_date=date(2026, 3, 10),
             ).count(),
             1,
+        )
+
+    def test_rate_changes_by_billing_date(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2025-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['amount'], '750.00')
+        self.assertTrue(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                amount=get_monthly_invoice_amount(date(2025, 3, 1)),
+                due_date=date(2025, 3, 10),
+                paid=False,
+            ).exists()
+        )
+
+    def test_future_join_date_is_not_billed(self):
+        self.active_player.membership.join_date = date(2026, 4, 1)
+        self.active_player.membership.status = "active"
+        self.active_player.membership.save(update_fields=["join_date", "status"])
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['billable_players'], 0)
+        self.assertFalse(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                due_date=date(2026, 3, 10),
+            ).exists()
+        )
+
+    def test_fee_exempt_player_is_not_billed(self):
+        self.active_player.membership.fee_exempt = True
+        self.active_player.membership.fee_exempt_reason = "Lifetime exemption"
+        self.active_player.membership.save(update_fields=["fee_exempt", "fee_exempt_reason"])
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['billable_players'], 0)
+        self.assertFalse(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                due_date=date(2026, 3, 10),
+            ).exists()
+        )
+
+    def test_ninety_day_overdue_player_is_marked_left(self):
+        Transaction.objects.create(
+            player=self.active_player,
+            category='monthly',
+            amount=750,
+            due_date=date(2025, 11, 30),
+            paid=False,
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.active_player.membership.refresh_from_db()
+        self.assertEqual(self.active_player.membership.status, "left")
+        self.assertEqual(response.data['billable_players'], 0)
+
+    def test_player_on_leave_is_not_billed_for_that_month(self):
+        MembershipLeave.objects.create(
+            membership=self.active_player.membership,
+            start_date=date(2026, 3, 1),
+            end_date=date(2026, 3, 31),
+            reason="On leave",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'billing_date': '2026-03-01'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['billable_players'], 0)
+        self.assertFalse(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                due_date=date(2026, 3, 10),
+            ).exists()
+        )
+
+    def test_backfill_creates_paid_months_and_skips_leave(self):
+        MembershipLeave.objects.create(
+            membership=self.active_player.membership,
+            start_date=date(2025, 2, 1),
+            end_date=date(2025, 2, 28),
+            reason="Absent approved leave",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(
+            self.backfill_url,
+            {
+                'player_id': self.active_player.id,
+                'start_month': '2025-01-01',
+                'end_month': '2025-03-01',
+                'payment_date': '2025-03-15',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['created_transactions'], 2)
+        self.assertEqual(response.data['skipped_leave_months'], 1)
+        january_txn = Transaction.objects.get(player=self.active_player, category='monthly', due_date=date(2025, 1, 10))
+        march_txn = Transaction.objects.get(player=self.active_player, category='monthly', due_date=date(2025, 3, 10))
+        self.assertTrue(january_txn.paid)
+        self.assertTrue(march_txn.paid)
+        self.assertEqual(january_txn.payment_date, date(2025, 3, 15))
+        self.assertFalse(
+            Transaction.objects.filter(
+                player=self.active_player,
+                category='monthly',
+                due_date=date(2025, 2, 10),
+            ).exists()
         )
 
     def test_non_admin_cannot_generate_monthly_invoices(self):

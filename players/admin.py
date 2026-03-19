@@ -1,6 +1,22 @@
 from django import forms
 from django.contrib import admin
-from .models import Player, Membership, RegistrationRequest, Subscription
+from .models import Membership, MembershipLeave, Player, RegistrationRequest, Subscription
+
+
+class MembershipInline(admin.StackedInline):
+    model = Membership
+    extra = 0
+
+
+class SubscriptionInline(admin.StackedInline):
+    model = Subscription
+    extra = 0
+
+
+class MembershipLeaveInline(admin.TabularInline):
+    model = MembershipLeave
+    extra = 0
+
 
 class PlayerAdminForm(forms.ModelForm):
     class Meta:
@@ -18,6 +34,7 @@ class PlayerAdmin(admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'age', 'role', 'phone_number')
     search_fields = ('first_name', 'last_name', 'phone_number')
     list_filter = ('role',)
+    inlines = (MembershipInline, SubscriptionInline)
 
     def save_model(self, request, obj, form, change):
         user = obj.user
@@ -28,7 +45,16 @@ class PlayerAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 admin.site.register(Player, PlayerAdmin)
-admin.site.register(Membership)
+
+
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    list_display = ("player", "join_date", "status", "fee_exempt")
+    list_filter = ("status", "fee_exempt")
+    search_fields = ("player__first_name", "player__last_name", "player__phone_number")
+    inlines = (MembershipLeaveInline,)
+
+
 admin.site.register(Subscription)
 
 

@@ -139,6 +139,11 @@ class ApproveRegistrationView(APIView):
                     role=role,
                 )
 
+            membership = getattr(player, "membership", None)
+            if membership and membership.status != "active":
+                membership.status = "active"
+                membership.save(update_fields=["status"])
+
             registration.status = RegistrationRequest.STATUS_APPROVED
             registration.approved_at = timezone.now()
             registration.approved_by = request.user
@@ -197,6 +202,7 @@ class PlayerDashboardView(APIView):
         player = getattr(request.user, "player", None)
         if not player:
             return Response({"error": "Player profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        player.sync_membership_status()
 
         teams = Team.objects.filter(players=player).distinct()
         upcoming_matches = Match.objects.filter(

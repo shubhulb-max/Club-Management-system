@@ -2,6 +2,18 @@ from django.db import models
 from players.models import Player
 from datetime import date
 
+
+class MembershipFeeSchedule(models.Model):
+    effective_from = models.DateField(unique=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ["-effective_from"]
+
+    def __str__(self):
+        return f"{self.amount} from {self.effective_from.isoformat()}"
+
+
 class Transaction(models.Model):
     CATEGORY_CHOICES = [
         ('registration', 'Registration Fee'),

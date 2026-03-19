@@ -28,7 +28,7 @@ class MatchSerializerTest(TestCase):
         }
 
     def test_valid_match_with_internal_team(self):
-        captain2 = Player.objects.create(first_name="Captain", last_name="Two", age=31, role="batsman")
+        captain2 = Player.objects.create(first_name="Captain", last_name="Two", age=31, role="top_order_batter")
         team2 = Team.objects.create(name="Team Two", captain=captain2)
         data = {
             **self.base_data,
@@ -161,7 +161,7 @@ class MatchSerializerTest(TestCase):
         self.assertEqual(serializer.validated_data['winner'], self.team1)
 
     def test_manual_result_and_winner_are_ignored(self):
-        captain2 = Player.objects.create(first_name="Captain", last_name="Six", age=27, role="batsman")
+        captain2 = Player.objects.create(first_name="Captain", last_name="Six", age=27, role="top_order_batter")
         team2 = Team.objects.create(name="Team Six", captain=captain2)
         data = {
             **self.base_data,

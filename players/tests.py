@@ -19,7 +19,7 @@ class PlayerModelTest(TestCase):
             first_name="John",
             last_name="Doe",
             age=25,
-            role="batsman"
+            role="top_order_batter"
         )
 
     def test_subscription_creation_on_player_creation(self):
@@ -42,6 +42,40 @@ class PlayerModelTest(TestCase):
         # Mark the fee as paid
         Transaction.objects.filter(player=self.player, category='monthly').update(paid=True)
         self.assertTrue(self.player.membership_active)
+
+    def test_membership_becomes_inactive_after_thirty_days_overdue(self):
+        self.player.membership.status = "active"
+        self.player.membership.save(update_fields=["status"])
+        Transaction.objects.create(
+            player=self.player,
+            category='monthly',
+            amount=750,
+            due_date=date.today() - timedelta(days=31),
+            paid=False
+        )
+
+        status_value = self.player.sync_membership_status()
+
+        self.assertEqual(status_value, "inactive")
+        self.player.membership.refresh_from_db()
+        self.assertEqual(self.player.membership.status, "inactive")
+
+    def test_membership_becomes_left_after_ninety_days_overdue(self):
+        self.player.membership.status = "active"
+        self.player.membership.save(update_fields=["status"])
+        Transaction.objects.create(
+            player=self.player,
+            category='monthly',
+            amount=750,
+            due_date=date.today() - timedelta(days=91),
+            paid=False
+        )
+
+        status_value = self.player.sync_membership_status()
+
+        self.assertEqual(status_value, "left")
+        self.player.membership.refresh_from_db()
+        self.assertEqual(self.player.membership.status, "left")
 
 class AuthTests(TestCase):
     def setUp(self):
@@ -324,7 +358,7 @@ class PlayerImageUploadValidationTests(TestCase):
                 "first_name": "Valid",
                 "last_name": "Image",
                 "age": 24,
-                "role": "batsman",
+                "role": "top_order_batter",
                 "phone_number": "2222222222",
                 "profile_picture": self._build_test_image(),
             },
@@ -332,3 +366,55 @@ class PlayerImageUploadValidationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class PlayerMembershipManualFieldsTests(TestCase):
+    def test_can_set_membership_join_date_and_status_on_create(self):
+        client = APIClient()
+        user = get_user_model().objects.create_user(phone_number="8866666666", password=VALID_PASSWORD)
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/players/",
+            {
+                "first_name": "Legacy",
+                "last_name": "Member",
+                "age": 30,
+                "role": "all_rounder",
+                "phone_number": "3333333333",
+                "membership_join_date": "2024-11-01",
+                "membership_status": "active",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        player = Player.objects.get(phone_number="3333333333")
+        self.assertEqual(player.membership.join_date.isoformat(), "2024-11-01")
+        self.assertEqual(player.membership.status, "active")
+
+    def test_can_set_membership_fee_exemption_on_create(self):
+        client = APIClient()
+        user = get_user_model().objects.create_user(phone_number="8855555555", password=VALID_PASSWORD)
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/players/",
+            {
+                "first_name": "Exempt",
+                "last_name": "Member",
+                "age": 31,
+                "role": "bowler",
+                "phone_number": "4444444444",
+                "membership_join_date": "2024-11-01",
+                "membership_status": "active",
+                "membership_fee_exempt": True,
+                "membership_fee_exempt_reason": "Club management exemption",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        player = Player.objects.get(phone_number="4444444444")
+        self.assertTrue(player.membership.fee_exempt)
+        self.assertEqual(player.membership.fee_exempt_reason, "Club management exemption")

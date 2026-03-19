@@ -14,13 +14,15 @@ from drf_spectacular.utils import extend_schema
 
 from .models import Transaction
 from .serializers import (
+    BackfillMonthlyPaymentsSerializer,
     TransactionSerializer,
     InitiatePaymentSerializer,
     PaymentCallbackSerializer,
     GenerateMonthlyInvoicesSerializer,
 )
 from .phonepe_utils import initiate_phonepe_payment, check_payment_status
-from .services import MONTHLY_INVOICE_AMOUNT, generate_monthly_invoices
+from .services import backfill_monthly_payments, generate_monthly_invoices, get_monthly_invoice_amount
+from players.models import Player
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -167,11 +169,52 @@ class GenerateMonthlyInvoicesView(APIView):
                 "message": "Monthly invoices generated successfully.",
                 "billing_date": (billing_date or timezone.localdate()).isoformat(),
                 "due_date": result.due_date.isoformat(),
-                "amount": str(result.created_invoices[0].amount) if result.created_invoices else str(MONTHLY_INVOICE_AMOUNT),
+                "amount": str(
+                    result.created_invoices[0].amount
+                    if result.created_invoices
+                    else get_monthly_invoice_amount(billing_date or timezone.localdate())
+                ),
                 "billable_players": result.billable_players,
                 "created_invoices": result.created_count,
                 "skipped_existing": result.skipped_existing,
                 "invoice_ids": [invoice.id for invoice in result.created_invoices],
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class BackfillMonthlyPaymentsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(request=BackfillMonthlyPaymentsSerializer, responses={200: None})
+    def post(self, request):
+        serializer = BackfillMonthlyPaymentsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        player = get_object_or_404(Player, id=serializer.validated_data["player_id"])
+        start_month = serializer.validated_data["start_month"]
+        end_month = serializer.validated_data["end_month"]
+        payment_date = serializer.validated_data.get("payment_date")
+
+        result = backfill_monthly_payments(
+            player=player,
+            start_month=start_month,
+            end_month=end_month,
+            payment_date=payment_date,
+        )
+
+        return Response(
+            {
+                "message": "Monthly payments backfilled successfully.",
+                "player_id": player.id,
+                "start_month": start_month.replace(day=1).isoformat(),
+                "end_month": end_month.replace(day=1).isoformat(),
+                "payment_date": payment_date.isoformat() if payment_date else None,
+                "created_transactions": result.created_count,
+                "skipped_existing": result.skipped_existing,
+                "skipped_leave_months": result.skipped_leave_months,
+                "skipped_before_join": result.skipped_before_join,
+                "transaction_ids": [transaction.id for transaction in result.created_transactions],
             },
             status=status.HTTP_200_OK,
         )

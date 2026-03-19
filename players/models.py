@@ -1,10 +1,14 @@
 from django.conf import settings
 from django.db import models
 from datetime import date, timedelta
+from calendar import monthrange
 from accounts.phone_utils import normalize_phone_number
 
 
 class Player(models.Model):
+    MEMBERSHIP_LAPSE_DAYS = 30
+    MEMBERSHIP_LEFT_DAYS = 90
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
     )
@@ -19,12 +23,17 @@ class Player(models.Model):
     phone_number = models.CharField(max_length=15,unique=True, null=True, blank=True)
 
     ROLE_CHOICES = [
-        ("batsman", "Batsman"),
+        ("top_order_batter", "Top-order batter"),
+        ("middle_order_batter", "Middle-order batter"),
+        ("wicket_keeper_batter", "Wicket-keeper batter"),
+        ("wicket_keeper", "Wicket-keeper"),
         ("bowler", "Bowler"),
         ("all_rounder", "All-Rounder"),
-        ("wicket_keeper", "Wicket-Keeper"),
+        ("lower_order_batter", "Lower-order batter"),
+        ("opening_batter", "Opening batter"),
+        ("none", "None"),
     ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="all_rounder")
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default="all_rounder")
 
     @property
     def membership_active(self):
@@ -32,12 +41,54 @@ class Player(models.Model):
         A player's membership is active if they have no unpaid 'Monthly Fee'
         invoices older than 30 days.
         """
-        thirty_days_ago = date.today() - timedelta(days=30)
+        thirty_days_ago = date.today() - timedelta(days=self.MEMBERSHIP_LAPSE_DAYS)
         return not self.transactions.filter(
             category='monthly',
             paid=False,
             due_date__lt=thirty_days_ago
         ).exists()
+
+    def oldest_unpaid_monthly_due_date(self):
+        overdue_transaction = (
+            self.transactions.filter(category="monthly", paid=False)
+            .order_by("due_date", "id")
+            .first()
+        )
+        return overdue_transaction.due_date if overdue_transaction else None
+
+    def computed_membership_status(self, as_of=None):
+        membership = getattr(self, "membership", None)
+        if membership is None:
+            return None
+        if membership.status == Membership.STATUS_PENDING:
+            return Membership.STATUS_PENDING
+        if membership.fee_exempt:
+            return Membership.STATUS_ACTIVE
+
+        as_of = as_of or date.today()
+        oldest_due_date = self.oldest_unpaid_monthly_due_date()
+        if not oldest_due_date:
+            return Membership.STATUS_ACTIVE
+
+        left_cutoff = as_of - timedelta(days=self.MEMBERSHIP_LEFT_DAYS)
+        lapse_cutoff = as_of - timedelta(days=self.MEMBERSHIP_LAPSE_DAYS)
+        if oldest_due_date < left_cutoff:
+            return Membership.STATUS_LEFT
+        if oldest_due_date < lapse_cutoff:
+            return Membership.STATUS_INACTIVE
+        return Membership.STATUS_ACTIVE
+
+    def sync_membership_status(self, as_of=None, *, save=True):
+        membership = getattr(self, "membership", None)
+        if membership is None:
+            return None
+
+        computed_status = self.computed_membership_status(as_of=as_of)
+        if computed_status and membership.status != computed_status:
+            membership.status = computed_status
+            if save:
+                membership.save(update_fields=["status"])
+        return membership.status
 
 
     def save(self, *args, **kwargs):
@@ -59,17 +110,50 @@ class Player(models.Model):
 
 
 class Membership(models.Model):
+    STATUS_ACTIVE = "active"
+    STATUS_INACTIVE = "inactive"
+    STATUS_PENDING = "pending"
+    STATUS_LEFT = "left"
+
     player = models.OneToOneField(Player, on_delete=models.CASCADE)
     join_date = models.DateField()
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('inactive', 'Inactive'),
-        ('pending', 'Pending'),
+        (STATUS_ACTIVE, 'Active'),
+        (STATUS_INACTIVE, 'Inactive'),
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_LEFT, 'Left Club'),
     ]
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    fee_exempt = models.BooleanField(default=False)
+    fee_exempt_reason = models.CharField(max_length=255, blank=True)
+
+    def month_bounds(self, billing_date):
+        month_start = billing_date.replace(day=1)
+        month_end = billing_date.replace(day=monthrange(billing_date.year, billing_date.month)[1])
+        return month_start, month_end
+
+    def is_on_leave_for_month(self, billing_date):
+        month_start, month_end = self.month_bounds(billing_date)
+        return self.leave_periods.filter(
+            start_date__lte=month_end,
+            end_date__gte=month_start,
+        ).exists()
 
     def __str__(self):
         return f"{self.player}'s Membership"
+
+
+class MembershipLeave(models.Model):
+    membership = models.ForeignKey(Membership, on_delete=models.CASCADE, related_name="leave_periods")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-start_date", "-id"]
+
+    def __str__(self):
+        return f"{self.membership.player} leave {self.start_date} to {self.end_date}"
 
 class Subscription(models.Model):
     player = models.OneToOneField(Player, on_delete=models.CASCADE)

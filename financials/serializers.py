@@ -21,3 +21,15 @@ class GenerateMonthlyInvoicesSerializer(serializers.Serializer):
         required=False,
         help_text="Optional billing date for the generated monthly invoices. Defaults to today.",
     )
+
+
+class BackfillMonthlyPaymentsSerializer(serializers.Serializer):
+    player_id = serializers.IntegerField(required=True)
+    start_month = serializers.DateField(required=True, help_text="Any date inside the first month to backfill.")
+    end_month = serializers.DateField(required=True, help_text="Any date inside the last month to backfill.")
+    payment_date = serializers.DateField(required=False, help_text="Optional payment date to apply to created records.")
+
+    def validate(self, attrs):
+        if attrs["end_month"] < attrs["start_month"]:
+            raise serializers.ValidationError({"end_month": "End month must be on or after start month."})
+        return attrs

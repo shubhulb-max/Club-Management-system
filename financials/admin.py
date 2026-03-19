@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Transaction
+from .models import MembershipFeeSchedule, Transaction
+
+
+@admin.register(MembershipFeeSchedule)
+class MembershipFeeScheduleAdmin(admin.ModelAdmin):
+    list_display = ("effective_from", "amount")
+    ordering = ("-effective_from",)
 
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ('player', 'category', 'amount', 'due_date', 'paid', 'payment_date')
