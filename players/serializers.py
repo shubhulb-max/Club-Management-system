@@ -4,7 +4,7 @@ from django.db import transaction
 from rest_framework import serializers
 from accounts.phone_utils import normalize_phone_number
 from cricket_club.upload_validators import validate_uploaded_image
-from .models import Player, Membership, MembershipLeave
+from .models import LeaveRequest, Player, Membership, MembershipLeave
 from teams.models import Team
 from tournaments.models import TournamentParticipation
 
@@ -19,6 +19,45 @@ class MembershipLeaveSerializer(serializers.ModelSerializer):
         if start_date and end_date and end_date < start_date:
             raise serializers.ValidationError({"end_date": "End date must be on or after start date."})
         return attrs
+
+
+class LeaveRequestSerializer(serializers.ModelSerializer):
+    player_id = serializers.IntegerField(source="player.id", read_only=True)
+    player_name = serializers.SerializerMethodField()
+    reviewed_by_phone_number = serializers.CharField(source="reviewed_by.phone_number", read_only=True)
+    applied_leave_id = serializers.IntegerField(source="applied_leave.id", read_only=True)
+
+    class Meta:
+        model = LeaveRequest
+        fields = [
+            "id",
+            "player_id",
+            "player_name",
+            "start_date",
+            "end_date",
+            "reason",
+            "status",
+            "reviewed_by_phone_number",
+            "reviewed_at",
+            "review_note",
+            "applied_leave_id",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_player_name(self, obj):
+        return str(obj.player)
+
+    def validate(self, attrs):
+        start_date = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        end_date = attrs.get("end_date", getattr(self.instance, "end_date", None))
+        if start_date and end_date and end_date < start_date:
+            raise serializers.ValidationError({"end_date": "End date must be on or after start date."})
+        return attrs
+
+
+class LeaveRequestReviewSerializer(serializers.Serializer):
+    review_note = serializers.CharField(required=False, allow_blank=True, max_length=255)
 
 
 class MembershipSerializer(serializers.ModelSerializer):

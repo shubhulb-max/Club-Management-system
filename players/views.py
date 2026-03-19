@@ -9,8 +9,13 @@ from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_spectacular.utils import extend_schema
 from django.db import transaction
-from .models import MembershipLeave, Player, RegistrationRequest
-from .serializers import MembershipLeaveSerializer, PlayerSerializer
+from .models import LeaveRequest, MembershipLeave, Player, RegistrationRequest
+from .serializers import (
+    LeaveRequestReviewSerializer,
+    LeaveRequestSerializer,
+    MembershipLeaveSerializer,
+    PlayerSerializer,
+)
 from .auth_serializers import (
     ApproveRegistrationSerializer,
     CustomTokenObtainPairSerializer,
@@ -293,3 +298,104 @@ class MembershipLeaveDetailView(APIView):
         leave_period = self.get_object(leave_id)
         leave_period.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LeaveRequestListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = LeaveRequest.objects.select_related("player", "reviewed_by", "applied_leave")
+        if request.user.is_staff or request.user.is_superuser:
+            leave_requests = queryset
+        else:
+            player = getattr(request.user, "player", None)
+            if not player:
+                return Response({"error": "Player profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            leave_requests = queryset.filter(player=player)
+        serializer = LeaveRequestSerializer(leave_requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(request=LeaveRequestSerializer, responses={201: LeaveRequestSerializer})
+    def post(self, request):
+        player = getattr(request.user, "player", None)
+        if not player:
+            return Response({"error": "Player profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = LeaveRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        leave_request = serializer.save(player=player)
+        return Response(LeaveRequestSerializer(leave_request).data, status=status.HTTP_201_CREATED)
+
+
+class LeaveRequestApproveView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(request=LeaveRequestReviewSerializer, responses={200: LeaveRequestSerializer})
+    def post(self, request, request_id):
+        serializer = LeaveRequestReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            leave_request = get_object_or_404(
+                LeaveRequest.objects.select_for_update().select_related("player", "player__membership"),
+                id=request_id,
+            )
+            if leave_request.status == LeaveRequest.STATUS_APPROVED:
+                return Response({"error": "Leave request is already approved."}, status=status.HTTP_400_BAD_REQUEST)
+            if leave_request.status == LeaveRequest.STATUS_REJECTED:
+                return Response({"error": "Rejected leave request cannot be approved."}, status=status.HTTP_400_BAD_REQUEST)
+
+            membership = getattr(leave_request.player, "membership", None)
+            if membership is None:
+                return Response({"error": "Membership not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            applied_leave = MembershipLeave.objects.create(
+                membership=membership,
+                start_date=leave_request.start_date,
+                end_date=leave_request.end_date,
+                reason=leave_request.reason,
+            )
+            leave_request.status = LeaveRequest.STATUS_APPROVED
+            leave_request.reviewed_by = request.user
+            leave_request.reviewed_at = timezone.now()
+            leave_request.review_note = serializer.validated_data.get("review_note", "")
+            leave_request.applied_leave = applied_leave
+            leave_request.save(
+                update_fields=[
+                    "status",
+                    "reviewed_by",
+                    "reviewed_at",
+                    "review_note",
+                    "applied_leave",
+                    "updated_at",
+                ]
+            )
+
+        return Response(LeaveRequestSerializer(leave_request).data, status=status.HTTP_200_OK)
+
+
+class LeaveRequestRejectView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    @extend_schema(request=LeaveRequestReviewSerializer, responses={200: LeaveRequestSerializer})
+    def post(self, request, request_id):
+        serializer = LeaveRequestReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            leave_request = get_object_or_404(
+                LeaveRequest.objects.select_for_update(),
+                id=request_id,
+            )
+            if leave_request.status == LeaveRequest.STATUS_APPROVED:
+                return Response({"error": "Approved leave request cannot be rejected."}, status=status.HTTP_400_BAD_REQUEST)
+            if leave_request.status == LeaveRequest.STATUS_REJECTED:
+                return Response({"error": "Leave request is already rejected."}, status=status.HTTP_400_BAD_REQUEST)
+
+            leave_request.status = LeaveRequest.STATUS_REJECTED
+            leave_request.reviewed_by = request.user
+            leave_request.reviewed_at = timezone.now()
+            leave_request.review_note = serializer.validated_data.get("review_note", "")
+            leave_request.save(update_fields=["status", "reviewed_by", "reviewed_at", "review_note", "updated_at"])
+
+        return Response(LeaveRequestSerializer(leave_request).data, status=status.HTTP_200_OK)

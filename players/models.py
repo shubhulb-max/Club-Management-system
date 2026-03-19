@@ -156,6 +156,47 @@ class MembershipLeave(models.Model):
     def __str__(self):
         return f"{self.membership.player} leave {self.start_date} to {self.end_date}"
 
+
+class LeaveRequest(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
+    ]
+
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="leave_requests")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_leave_requests",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=255, blank=True)
+    applied_leave = models.OneToOneField(
+        MembershipLeave,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leave_request",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.player} leave request {self.start_date} to {self.end_date} ({self.status})"
+
 class Subscription(models.Model):
     player = models.OneToOneField(Player, on_delete=models.CASCADE)
     monthly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=750.00)

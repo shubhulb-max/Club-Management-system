@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from PIL import Image
 from io import BytesIO
-from .models import MembershipLeave, Player, RegistrationRequest, Subscription
+from .models import LeaveRequest, MembershipLeave, Player, RegistrationRequest, Subscription
 from financials.models import Transaction
 from datetime import date, timedelta
 
@@ -497,3 +497,109 @@ class MembershipLeaveApiTests(TestCase):
         delete_response = self.client.delete(detail_url)
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(MembershipLeave.objects.filter(id=leave_period.id).exists())
+
+
+class LeaveRequestApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        User = get_user_model()
+        self.player_user = User.objects.create_user(phone_number="8833333333", password=VALID_PASSWORD)
+        self.player = Player.objects.create(
+            user=self.player_user,
+            first_name="Request",
+            last_name="Player",
+            age=27,
+            role="all_rounder",
+            phone_number="6666666666",
+        )
+        self.admin_user = User.objects.create_user(
+            phone_number="8822222222",
+            password=VALID_PASSWORD,
+            is_staff=True,
+        )
+        self.url = "/api/auth/leave-requests/"
+
+    def test_player_can_submit_and_list_own_leave_requests(self):
+        self.client.force_authenticate(user=self.player_user)
+
+        create_response = self.client.post(
+            self.url,
+            {
+                "start_date": "2025-04-01",
+                "end_date": "2025-04-15",
+                "reason": "Out of station",
+            },
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(create_response.data["status"], "pending")
+        self.assertEqual(create_response.data["player_id"], self.player.id)
+
+        list_response = self.client.get(self.url)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(list_response.data[0]["reason"], "Out of station")
+
+    def test_admin_can_approve_leave_request_and_apply_membership_leave(self):
+        leave_request = LeaveRequest.objects.create(
+            player=self.player,
+            start_date=date(2025, 4, 1),
+            end_date=date(2025, 4, 15),
+            reason="Medical leave",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(
+            f"/api/auth/leave-requests/{leave_request.id}/approve/",
+            {"review_note": "Approved"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        leave_request.refresh_from_db()
+        self.assertEqual(leave_request.status, LeaveRequest.STATUS_APPROVED)
+        self.assertEqual(leave_request.reviewed_by, self.admin_user)
+        self.assertIsNotNone(leave_request.applied_leave)
+        self.assertTrue(
+            MembershipLeave.objects.filter(
+                membership=self.player.membership,
+                start_date=date(2025, 4, 1),
+                end_date=date(2025, 4, 15),
+            ).exists()
+        )
+
+    def test_admin_can_reject_leave_request(self):
+        leave_request = LeaveRequest.objects.create(
+            player=self.player,
+            start_date=date(2025, 5, 1),
+            end_date=date(2025, 5, 10),
+            reason="Travel",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(
+            f"/api/auth/leave-requests/{leave_request.id}/reject/",
+            {"review_note": "Not enough detail"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        leave_request.refresh_from_db()
+        self.assertEqual(leave_request.status, LeaveRequest.STATUS_REJECTED)
+        self.assertEqual(leave_request.reviewed_by, self.admin_user)
+        self.assertIsNone(leave_request.applied_leave)
+
+    def test_admin_list_shows_all_leave_requests(self):
+        LeaveRequest.objects.create(
+            player=self.player,
+            start_date=date(2025, 6, 1),
+            end_date=date(2025, 6, 5),
+            reason="Family event",
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
